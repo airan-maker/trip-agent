@@ -11,9 +11,10 @@ import { nanoid } from 'nanoid';
 interface ChatWindowProps {
   tripId: string;
   initialMessages?: Message[];
+  onItineraryUpdate?: () => void;
 }
 
-export default function ChatWindow({ tripId, initialMessages = [] }: ChatWindowProps) {
+export default function ChatWindow({ tripId, initialMessages = [], onItineraryUpdate }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
@@ -107,6 +108,7 @@ export default function ChatWindow({ tripId, initialMessages = [] }: ChatWindowP
                 setStreamingContent(display);
               } else if (event.type === 'itinerary_ready') {
                 setItineraryReady(true);
+                onItineraryUpdate?.();
               } else if (event.type === 'error') {
                 throw new Error(event.message);
               }
@@ -139,7 +141,10 @@ export default function ChatWindow({ tripId, initialMessages = [] }: ChatWindowP
           createdAt: new Date().toISOString(),
         };
         setMessages((prev) => [...prev, assistantMsg]);
-        if (data.itineraryReady) setItineraryReady(true);
+        if (data.itineraryReady) {
+          setItineraryReady(true);
+          onItineraryUpdate?.();
+        }
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
