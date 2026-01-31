@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import ErrorBoundary from "@/components/shared/ErrorBoundary";
 
 export const metadata: Metadata = {
   title: "TripTalk - 대화하면 완성되는 여행 일정",
@@ -9,7 +10,19 @@ export const metadata: Metadata = {
     title: "TripTalk - 대화하면 완성되는 여행 일정",
     description:
       "AI와 대화하면서 여행을 기획하고, 공유 가능한 웹 일정 페이지를 자동 생성하세요.",
+    type: "website",
   },
+  robots: {
+    index: true,
+    follow: true,
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: "#7c3aed",
 };
 
 export default function RootLayout({
@@ -20,7 +33,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className="antialiased">
-        {children}
+        <ErrorBoundary>{children}</ErrorBoundary>
       </body>
     </html>
   );

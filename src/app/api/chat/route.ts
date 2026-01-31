@@ -1,17 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { processChat } from '@/lib/agent';
+import { createStreamingResponse } from '@/lib/agent';
 import * as db from '@/lib/db';
+import { chatMessageSchema } from '@/lib/validation';
+import { checkRateLimit, getRateLimitHeaders } from '@/lib/rate-limit';
+import { getEnv } from '@/lib/env';
 
 export async function POST(request: NextRequest) {
   try {
-    const { tripId, message } = await request.json();
+    // Rate limit by IP
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+    const env = getEnv();
+    const rl = checkRateLimit(`chat:${ip}`, env.RATE_LIMIT_MAX, env.RATE_LIMIT_WINDOW_MS);
 
-    if (!tripId || !message) {
+    if (!rl.allowed) {
       return NextResponse.json(
-        { error: 'tripId and message are required' },
+        { error: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.' },
+        { status: 429, headers: getRateLimitHeaders(rl) }
+      );
+    }
+
+    // Parse and validate input
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    const parsed = chatMessageSchema.safeParse(body);
+    if (!parsed.success) {
+      const errors = parsed.error.flatten().fieldErrors;
+      return NextResponse.json(
+        { error: 'Invalid request', details: errors },
         { status: 400 }
       );
     }
+
+    const { tripId, message } = parsed.data;
 
     // Verify trip exists
     const trip = db.getTrip(tripId);
@@ -19,28 +44,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
     }
 
-    // Get API key from environment
-    const apiKey =
-      process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || '';
-
-    if (!apiKey) {
+    // Check message count limit
+    const msgCount = db.getMessageCount(tripId);
+    if (msgCount >= env.MAX_MESSAGES_PER_TRIP) {
       return NextResponse.json(
-        { error: 'API key not configured. Set ANTHROPIC_API_KEY or OPENAI_API_KEY in .env.local' },
-        { status: 500 }
+        { error: '대화 제한에 도달했어요. 새로운 여행 계획을 시작해주세요.' },
+        { status: 400 }
       );
     }
 
-    const result = await processChat(tripId, message, apiKey);
+    // Stream the response
+    const stream = createStreamingResponse(tripId, message);
 
-    return NextResponse.json({
-      message: result.message,
-      tripUpdated: !!result.itineraryData,
-      itineraryReady: !!result.itineraryData,
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+        ...getRateLimitHeaders(rl),
+      },
     });
   } catch (error) {
     console.error('Chat API error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal server error' },
+      { error: '서버 오류가 발생했어요.' },
       { status: 500 }
     );
   }
@@ -49,8 +76,8 @@ export async function POST(request: NextRequest) {
 // GET /api/chat?tripId=xxx - Get chat history
 export async function GET(request: NextRequest) {
   const tripId = request.nextUrl.searchParams.get('tripId');
-  if (!tripId) {
-    return NextResponse.json({ error: 'tripId required' }, { status: 400 });
+  if (!tripId || !/^[a-zA-Z0-9_-]+$/.test(tripId)) {
+    return NextResponse.json({ error: 'Valid tripId required' }, { status: 400 });
   }
 
   const messages = db.getMessages(tripId);

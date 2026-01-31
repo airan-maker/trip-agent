@@ -6,6 +6,7 @@ import { Message } from '@/types/trip';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import { Plane, Loader2 } from 'lucide-react';
+import { nanoid } from 'nanoid';
 
 interface ChatWindowProps {
   tripId: string;
@@ -15,8 +16,10 @@ interface ChatWindowProps {
 export default function ChatWindow({ tripId, initialMessages = [] }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
   const [itineraryReady, setItineraryReady] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const router = useRouter();
 
   const scrollToBottom = useCallback(() => {
@@ -25,9 +28,9 @@ export default function ChatWindow({ tripId, initialMessages = [] }: ChatWindowP
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, scrollToBottom]);
+  }, [messages, streamingContent, scrollToBottom]);
 
-  // Send greeting on mount if no messages
+  // Show greeting on mount if no messages
   useEffect(() => {
     if (messages.length === 0) {
       const greeting: Message = {
@@ -45,7 +48,7 @@ export default function ChatWindow({ tripId, initialMessages = [] }: ChatWindowP
   const sendMessage = async (content: string) => {
     // Add user message optimistically
     const userMsg: Message = {
-      id: `user-${Date.now()}`,
+      id: nanoid(),
       tripId,
       role: 'user',
       content,
@@ -53,44 +56,116 @@ export default function ChatWindow({ tripId, initialMessages = [] }: ChatWindowP
     };
     setMessages((prev) => [...prev, userMsg]);
     setIsLoading(true);
+    setStreamingContent('');
+
+    // Abort previous request if any
+    abortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tripId, message: content }),
+        signal: abortController.signal,
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to send message');
+        let errorMsg = '서버 오류가 발생했어요.';
+        try {
+          const error = await res.json();
+          errorMsg = error.error || errorMsg;
+        } catch {
+          // Use default error message
+        }
+        throw new Error(errorMsg);
       }
 
-      const data = await res.json();
+      // Handle SSE streaming
+      if (res.headers.get('content-type')?.includes('text/event-stream') && res.body) {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulated = '';
+        let buffer = '';
 
-      const assistantMsg: Message = {
-        id: `assistant-${Date.now()}`,
-        tripId,
-        role: 'assistant',
-        content: data.message,
-        createdAt: new Date().toISOString(),
-      };
-      setMessages((prev) => [...prev, assistantMsg]);
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-      if (data.itineraryReady) {
-        setItineraryReady(true);
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6);
+
+            if (data === '[DONE]') continue;
+
+            try {
+              const event = JSON.parse(data);
+
+              if (event.type === 'text') {
+                accumulated += event.content;
+                // Strip JSON blocks from display
+                const display = accumulated.replace(/```json[\s\S]*?```/g, '').trim();
+                setStreamingContent(display);
+              } else if (event.type === 'itinerary_ready') {
+                setItineraryReady(true);
+              } else if (event.type === 'error') {
+                throw new Error(event.message);
+              }
+            } catch (e) {
+              if (e instanceof SyntaxError) continue; // Skip malformed JSON
+              throw e;
+            }
+          }
+        }
+
+        // Finalize: convert streaming content into a proper message
+        const finalContent = accumulated.replace(/```json[\s\S]*?```/g, '').trim();
+        if (finalContent) {
+          const assistantMsg: Message = {
+            id: nanoid(),
+            tripId,
+            role: 'assistant',
+            content: finalContent,
+            createdAt: new Date().toISOString(),
+          };
+          setMessages((prev) => [...prev, assistantMsg]);
+        }
+        setStreamingContent('');
+      } else {
+        // Fallback: non-streaming JSON response
+        const data = await res.json();
+        const assistantMsg: Message = {
+          id: nanoid(),
+          tripId,
+          role: 'assistant',
+          content: data.message,
+          createdAt: new Date().toISOString(),
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+
+        if (data.itineraryReady) {
+          setItineraryReady(true);
+        }
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+
       const errorMsg: Message = {
-        id: `error-${Date.now()}`,
+        id: nanoid(),
         tripId,
         role: 'assistant',
-        content: `죄송해요, 오류가 발생했어요: ${error instanceof Error ? error.message : '알 수 없는 오류'}`,
+        content: `죄송해요, 오류가 발생했어요. ${error instanceof Error ? error.message : '잠시 후 다시 시도해주세요.'}`,
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
       setIsLoading(false);
+      setStreamingContent('');
     }
   };
 
@@ -125,7 +200,22 @@ export default function ChatWindow({ tripId, initialMessages = [] }: ChatWindowP
           {messages.map((msg) => (
             <ChatMessage key={msg.id} message={msg} />
           ))}
-          {isLoading && (
+
+          {/* Streaming message */}
+          {streamingContent && (
+            <ChatMessage
+              message={{
+                id: 'streaming',
+                tripId,
+                role: 'assistant',
+                content: streamingContent,
+                createdAt: new Date().toISOString(),
+              }}
+            />
+          )}
+
+          {/* Loading indicator (before streaming starts) */}
+          {isLoading && !streamingContent && (
             <div className="flex gap-3">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
                 <Loader2 className="w-4 h-4 text-white animate-spin" />
@@ -139,6 +229,7 @@ export default function ChatWindow({ tripId, initialMessages = [] }: ChatWindowP
               </div>
             </div>
           )}
+
           <div ref={messagesEndRef} />
         </div>
       </div>

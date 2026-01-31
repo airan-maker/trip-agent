@@ -1,6 +1,8 @@
 import { nanoid } from 'nanoid';
-import { Trip, Place } from '@/types/trip';
+import { Place } from '@/types/trip';
+import { getEnv } from './env';
 import * as db from './db';
+import { z } from 'zod';
 
 const SYSTEM_PROMPT = `You are TripTalk, a friendly Korean-speaking travel planning AI agent. You help users plan their trips through natural conversation.
 
@@ -79,49 +81,74 @@ Respond with the FULL updated itinerary JSON (not just the changed parts).
 - Be helpful about the destination: share tips, seasonal info, local customs.
 - When mentioning search results, say things like "제가 찾아본 바로는..." or "검색해보니..."`;
 
-interface AgentResponse {
+// Zod schema for validating LLM itinerary output
+const placePayloadSchema = z.object({
+  timeSlot: z.enum(['morning', 'lunch', 'afternoon', 'evening']),
+  name: z.string().min(1).max(200),
+  nameLocal: z.string().max(200).optional(),
+  category: z.string().max(50).default(''),
+  description: z.string().max(500).default(''),
+  address: z.string().max(500).optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  rating: z.number().min(0).max(5).optional(),
+  openingHours: z.string().max(100).optional(),
+  duration: z.string().max(100).optional(),
+  cost: z.string().max(100).optional(),
+});
+
+const itineraryPayloadSchema = z.object({
+  action: z.literal('create_itinerary'),
+  trip: z.object({
+    title: z.string().max(200).optional(),
+    destination: z.string().max(200).optional(),
+    startDate: z.string().max(20).optional(),
+    endDate: z.string().max(20).optional(),
+    travelers: z.string().max(100).optional(),
+    theme: z.string().max(200).optional(),
+    budget: z.string().max(100).optional(),
+    transportation: z.string().max(100).optional(),
+  }),
+  days: z.array(
+    z.object({
+      dayIndex: z.number().int().positive(),
+      title: z.string().max(200),
+      places: z.array(placePayloadSchema),
+    })
+  ),
+});
+
+type ItineraryPayload = z.infer<typeof itineraryPayloadSchema>;
+
+export interface AgentResponse {
   message: string;
   itineraryData: ItineraryPayload | null;
 }
 
-interface ItineraryPayload {
-  action: string;
-  trip: Partial<Trip>;
-  days: {
-    dayIndex: number;
-    title: string;
-    places: {
-      timeSlot: string;
-      name: string;
-      nameLocal?: string;
-      category: string;
-      description: string;
-      address?: string;
-      latitude?: number;
-      longitude?: number;
-      rating?: number;
-      openingHours?: string;
-      duration?: string;
-      cost?: string;
-    }[];
-  }[];
-}
+// Limit conversation context sent to LLM to avoid token overflow
+const MAX_CONTEXT_MESSAGES = 40;
 
 export async function processChat(
   tripId: string,
-  userMessage: string,
-  apiKey: string
+  userMessage: string
 ): Promise<AgentResponse> {
-  // Get conversation history
+  const env = getEnv();
+  const apiKey = env.LLM_PROVIDER === 'openai'
+    ? env.OPENAI_API_KEY!
+    : env.ANTHROPIC_API_KEY!;
+
+  // Get conversation history (limited)
   const messages = db.getMessages(tripId);
+  const recentMessages = messages.slice(-MAX_CONTEXT_MESSAGES);
 
-  // Build messages for API
-  const apiMessages = messages.map((m) => ({
-    role: m.role as 'user' | 'assistant',
-    content: m.content,
-  }));
+  // Build messages for API (only user/assistant, skip system)
+  const apiMessages = recentMessages
+    .filter((m) => m.role === 'user' || m.role === 'assistant')
+    .map((m) => ({
+      role: m.role as 'user' | 'assistant',
+      content: m.content,
+    }));
 
-  // Add new user message
   apiMessages.push({ role: 'user', content: userMessage });
 
   // Save user message
@@ -134,9 +161,9 @@ export async function processChat(
   });
 
   // Call LLM
-  const response = await callLLM(apiMessages, apiKey);
+  const response = await callLLM(apiMessages, apiKey, env);
 
-  // Save assistant message
+  // Save assistant message (save the full response including JSON for history)
   db.addMessage({
     id: nanoid(),
     tripId,
@@ -147,44 +174,100 @@ export async function processChat(
 
   // If itinerary data was generated, save it
   if (response.itineraryData) {
-    await saveItinerary(tripId, response.itineraryData);
+    saveItinerary(tripId, response.itineraryData);
   }
 
   return response;
 }
 
-async function callLLM(
-  messages: { role: string; content: string }[],
-  apiKey: string
-): Promise<AgentResponse> {
-  const provider = process.env.LLM_PROVIDER || 'anthropic';
+export function createStreamingResponse(
+  tripId: string,
+  userMessage: string
+): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder();
 
-  let responseText: string;
+  return new ReadableStream({
+    async start(controller) {
+      try {
+        const env = getEnv();
+        const apiKey = env.LLM_PROVIDER === 'openai'
+          ? env.OPENAI_API_KEY!
+          : env.ANTHROPIC_API_KEY!;
 
-  if (provider === 'openai') {
-    responseText = await callOpenAI(messages, apiKey);
-  } else {
-    responseText = await callAnthropic(messages, apiKey);
-  }
+        const messages = db.getMessages(tripId);
+        const recentMessages = messages.slice(-MAX_CONTEXT_MESSAGES);
 
-  // Parse response for itinerary JSON
-  const itineraryData = extractItineraryJson(responseText);
+        const apiMessages = recentMessages
+          .filter((m) => m.role === 'user' || m.role === 'assistant')
+          .map((m) => ({
+            role: m.role as 'user' | 'assistant',
+            content: m.content,
+          }));
 
-  // Clean message (remove JSON block for display)
-  let displayMessage = responseText;
-  if (itineraryData) {
-    displayMessage = responseText.replace(/```json[\s\S]*?```/g, '').trim();
-    if (!displayMessage) {
-      displayMessage = '일정을 만들었어요! 아래에서 확인해보세요 ✈️';
-    }
-  }
+        apiMessages.push({ role: 'user', content: userMessage });
 
-  return { message: displayMessage, itineraryData };
+        // Save user message
+        db.addMessage({
+          id: nanoid(),
+          tripId,
+          role: 'user',
+          content: userMessage,
+          createdAt: new Date().toISOString(),
+        });
+
+        // Stream from LLM
+        let fullText = '';
+
+        if (env.LLM_PROVIDER === 'openai') {
+          fullText = await streamOpenAI(apiMessages, apiKey, env, controller, encoder);
+        } else {
+          fullText = await streamAnthropic(apiMessages, apiKey, env, controller, encoder);
+        }
+
+        // Parse for itinerary
+        const itineraryData = extractItineraryJson(fullText);
+
+        // Save assistant message
+        const displayMessage = itineraryData
+          ? fullText.replace(/```json[\s\S]*?```/g, '').trim() || '일정을 만들었어요! 아래에서 확인해보세요 ✈️'
+          : fullText;
+
+        db.addMessage({
+          id: nanoid(),
+          tripId,
+          role: 'assistant',
+          content: displayMessage,
+          createdAt: new Date().toISOString(),
+        });
+
+        if (itineraryData) {
+          saveItinerary(tripId, itineraryData);
+          // Send itinerary ready signal
+          const event = `data: ${JSON.stringify({ type: 'itinerary_ready' })}\n\n`;
+          controller.enqueue(encoder.encode(event));
+        }
+
+        // Send done signal
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Streaming error:', errorMsg);
+        const event = `data: ${JSON.stringify({ type: 'error', message: '응답 생성 중 오류가 발생했어요.' })}\n\n`;
+        controller.enqueue(encoder.encode(event));
+        controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        controller.close();
+      }
+    },
+  });
 }
 
-async function callAnthropic(
+async function streamAnthropic(
   messages: { role: string; content: string }[],
-  apiKey: string
+  apiKey: string,
+  env: ReturnType<typeof getEnv>,
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  encoder: TextEncoder
 ): Promise<string> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -194,8 +277,9 @@ async function callAnthropic(
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+      model: env.ANTHROPIC_MODEL,
       max_tokens: 4096,
+      stream: true,
       system: SYSTEM_PROMPT,
       messages: messages.map((m) => ({
         role: m.role === 'system' ? 'user' : m.role,
@@ -205,17 +289,52 @@ async function callAnthropic(
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Anthropic API error: ${response.status} - ${error}`);
+    const errorBody = await response.text().catch(() => 'unknown');
+    throw new Error(`Anthropic API error: ${response.status} - ${errorBody.slice(0, 200)}`);
   }
 
-  const data = await response.json();
-  return data.content[0].text;
+  if (!response.body) throw new Error('No response body');
+
+  let fullText = '';
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6);
+      if (data === '[DONE]') continue;
+
+      try {
+        const event = JSON.parse(data);
+        if (event.type === 'content_block_delta' && event.delta?.text) {
+          fullText += event.delta.text;
+          const sseEvent = `data: ${JSON.stringify({ type: 'text', content: event.delta.text })}\n\n`;
+          controller.enqueue(encoder.encode(sseEvent));
+        }
+      } catch {
+        // Skip malformed events
+      }
+    }
+  }
+
+  return fullText;
 }
 
-async function callOpenAI(
+async function streamOpenAI(
   messages: { role: string; content: string }[],
-  apiKey: string
+  apiKey: string,
+  env: ReturnType<typeof getEnv>,
+  controller: ReadableStreamDefaultController<Uint8Array>,
+  encoder: TextEncoder
 ): Promise<string> {
   const allMessages = [
     { role: 'system', content: SYSTEM_PROMPT },
@@ -229,19 +348,147 @@ async function callOpenAI(
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || 'gpt-4o',
+      model: env.OPENAI_MODEL,
+      messages: allMessages,
+      max_tokens: 4096,
+      stream: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => 'unknown');
+    throw new Error(`OpenAI API error: ${response.status} - ${errorBody.slice(0, 200)}`);
+  }
+
+  if (!response.body) throw new Error('No response body');
+
+  let fullText = '';
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6);
+      if (data === '[DONE]') continue;
+
+      try {
+        const event = JSON.parse(data);
+        const content = event.choices?.[0]?.delta?.content;
+        if (content) {
+          fullText += content;
+          const sseEvent = `data: ${JSON.stringify({ type: 'text', content })}\n\n`;
+          controller.enqueue(encoder.encode(sseEvent));
+        }
+      } catch {
+        // Skip malformed events
+      }
+    }
+  }
+
+  return fullText;
+}
+
+// Non-streaming version (fallback)
+async function callLLM(
+  messages: { role: string; content: string }[],
+  apiKey: string,
+  env: ReturnType<typeof getEnv>
+): Promise<AgentResponse> {
+  let responseText: string;
+
+  if (env.LLM_PROVIDER === 'openai') {
+    responseText = await callOpenAI(messages, apiKey, env);
+  } else {
+    responseText = await callAnthropic(messages, apiKey, env);
+  }
+
+  const itineraryData = extractItineraryJson(responseText);
+
+  let displayMessage = responseText;
+  if (itineraryData) {
+    displayMessage = responseText.replace(/```json[\s\S]*?```/g, '').trim();
+    if (!displayMessage) {
+      displayMessage = '일정을 만들었어요! 아래에서 확인해보세요 ✈️';
+    }
+  }
+
+  return { message: displayMessage, itineraryData };
+}
+
+async function callAnthropic(
+  messages: { role: string; content: string }[],
+  apiKey: string,
+  env: ReturnType<typeof getEnv>
+): Promise<string> {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: env.ANTHROPIC_MODEL,
+      max_tokens: 4096,
+      system: SYSTEM_PROMPT,
+      messages: messages.map((m) => ({
+        role: m.role === 'system' ? 'user' : m.role,
+        content: m.content,
+      })),
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text().catch(() => 'unknown');
+    throw new Error(`LLM API error (${response.status})`);
+  }
+
+  const data = await response.json();
+  const text = data?.content?.[0]?.text;
+  if (!text) throw new Error('Empty response from LLM');
+  return text;
+}
+
+async function callOpenAI(
+  messages: { role: string; content: string }[],
+  apiKey: string,
+  env: ReturnType<typeof getEnv>
+): Promise<string> {
+  const allMessages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...messages,
+  ];
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: env.OPENAI_MODEL,
       messages: allMessages,
       max_tokens: 4096,
     }),
   });
 
   if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} - ${error}`);
+    throw new Error(`LLM API error (${response.status})`);
   }
 
   const data = await response.json();
-  return data.choices[0].message.content;
+  const text = data?.choices?.[0]?.message?.content;
+  if (!text) throw new Error('Empty response from LLM');
+  return text;
 }
 
 function extractItineraryJson(text: string): ItineraryPayload | null {
@@ -249,18 +496,20 @@ function extractItineraryJson(text: string): ItineraryPayload | null {
   if (!jsonMatch) return null;
 
   try {
-    const parsed = JSON.parse(jsonMatch[1]);
-    if (parsed.action === 'create_itinerary' && parsed.days) {
-      return parsed as ItineraryPayload;
+    const raw = JSON.parse(jsonMatch[1]);
+    const parsed = itineraryPayloadSchema.safeParse(raw);
+    if (!parsed.success) {
+      console.warn('Itinerary validation failed:', parsed.error.flatten());
+      return null;
     }
-    return null;
-  } catch {
+    return parsed.data;
+  } catch (err) {
+    console.warn('Failed to parse itinerary JSON:', err);
     return null;
   }
 }
 
-async function saveItinerary(tripId: string, data: ItineraryPayload): Promise<void> {
-  // Update trip info
+function saveItinerary(tripId: string, data: ItineraryPayload): void {
   db.updateTrip(tripId, {
     title: data.trip.title || '',
     destination: data.trip.destination || '',
@@ -273,7 +522,8 @@ async function saveItinerary(tripId: string, data: ItineraryPayload): Promise<vo
     status: 'complete',
   });
 
-  // Save places
+  const validTimeSlots = new Set(['morning', 'lunch', 'afternoon', 'evening']);
+
   const places: Place[] = [];
   for (const day of data.days) {
     for (let i = 0; i < day.places.length; i++) {
@@ -282,19 +532,19 @@ async function saveItinerary(tripId: string, data: ItineraryPayload): Promise<vo
         id: nanoid(),
         tripId,
         dayIndex: day.dayIndex,
-        timeSlot: p.timeSlot as Place['timeSlot'],
+        timeSlot: validTimeSlots.has(p.timeSlot) ? p.timeSlot as Place['timeSlot'] : 'morning',
         orderIndex: i,
-        name: p.name,
-        nameLocal: p.nameLocal || null,
-        category: p.category || '',
-        description: p.description || '',
-        address: p.address || null,
-        latitude: p.latitude || null,
-        longitude: p.longitude || null,
-        rating: p.rating || null,
-        openingHours: p.openingHours || null,
-        duration: p.duration || null,
-        cost: p.cost || null,
+        name: p.name.slice(0, 200),
+        nameLocal: p.nameLocal?.slice(0, 200) || null,
+        category: p.category.slice(0, 50),
+        description: p.description.slice(0, 500),
+        address: p.address?.slice(0, 500) || null,
+        latitude: p.latitude ?? null,
+        longitude: p.longitude ?? null,
+        rating: p.rating != null ? Math.min(5, Math.max(0, p.rating)) : null,
+        openingHours: p.openingHours?.slice(0, 100) || null,
+        duration: p.duration?.slice(0, 100) || null,
+        cost: p.cost?.slice(0, 100) || null,
         imageUrl: null,
         memo: null,
       });
