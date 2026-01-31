@@ -9,8 +9,14 @@ interface DaySectionProps {
 
 const timeSlotOrder = ['morning', 'lunch', 'afternoon', 'evening'];
 
+const timeSlotHeaders: Record<string, { label: string; icon: string }> = {
+  morning: { label: '오전', icon: '🌅' },
+  lunch: { label: '점심', icon: '🍽️' },
+  afternoon: { label: '오후', icon: '☀️' },
+  evening: { label: '저녁', icon: '🌙' },
+};
+
 export default function DaySection({ day }: DaySectionProps) {
-  // Group places by time slot
   const grouped = timeSlotOrder
     .map((slot) => ({
       slot,
@@ -19,16 +25,17 @@ export default function DaySection({ day }: DaySectionProps) {
     .filter((g) => g.places.length > 0);
 
   return (
-    <div className="mb-8">
-      <div className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur-sm py-3 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+    <div className="mb-10 animate-fade-in-up">
+      {/* Day header */}
+      <div className="sticky top-12 z-10 bg-[#fafafa]/95 backdrop-blur-sm py-3 mb-5">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
             {day.dayIndex}
           </div>
           <div>
-            <h2 className="font-bold text-lg text-gray-900">{day.title}</h2>
+            <h2 className="font-bold text-lg text-gray-900 tracking-tight">{day.title}</h2>
             {day.date && (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-400">
                 {new Date(day.date + 'T00:00:00').toLocaleDateString('ko-KR', {
                   month: 'long',
                   day: 'numeric',
@@ -40,15 +47,25 @@ export default function DaySection({ day }: DaySectionProps) {
         </div>
       </div>
 
-      <div className="space-y-3 pl-5 border-l-2 border-violet-200 ml-5">
-        {grouped.map((group) =>
-          group.places.map((place) => (
-            <div key={place.id} className="relative">
-              <div className="absolute -left-[1.65rem] top-4 w-3 h-3 rounded-full bg-violet-400 border-2 border-white" />
-              <PlaceCard place={place} showTimeSlot />
+      {/* Timeline */}
+      <div className="pl-6 ml-6 border-l-2 border-violet-100 space-y-4">
+        {grouped.map((group) => (
+          <div key={group.slot}>
+            {/* Time slot header */}
+            <div className="relative mb-3">
+              <div className="absolute -left-[1.85rem] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-violet-200 border-[3px] border-white shadow-sm" />
+              <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {timeSlotHeaders[group.slot]?.icon} {timeSlotHeaders[group.slot]?.label || group.slot}
+              </span>
             </div>
-          ))
-        )}
+            {/* Place cards for this slot */}
+            <div className="space-y-3">
+              {group.places.map((place) => (
+                <PlaceCard key={place.id} place={place} />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

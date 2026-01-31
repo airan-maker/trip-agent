@@ -3,6 +3,7 @@ import { Place } from '@/types/trip';
 import { getEnv } from './env';
 import * as db from './db';
 import { z } from 'zod';
+import { buildKnowledgeContext } from './knowledge/japan-cities';
 
 const SYSTEM_PROMPT = `You are TripTalk, a friendly Korean-speaking travel planning AI agent. You help users plan their trips through natural conversation.
 
@@ -79,7 +80,29 @@ Respond with the FULL updated itinerary JSON (not just the changed parts).
 ## Important
 - If the user hasn't provided enough info, keep conversing. Don't generate an itinerary prematurely.
 - Be helpful about the destination: share tips, seasonal info, local customs.
-- When mentioning search results, say things like "제가 찾아본 바로는..." or "검색해보니..."`;
+- When mentioning search results, say things like "제가 찾아본 바로는..." or "검색해보니..."
+
+## Knowledge Base
+When you have structured knowledge about a destination, USE IT to give precise recommendations:
+- Cite specific place names, hours, admission fees, tips
+- Mention local food specialties with recommended restaurants
+- Include transport options with costs and duration
+- Reference seasonal events if relevant to travel dates
+- Share insider tips from the knowledge base naturally in conversation`;
+
+/**
+ * Build system prompt with optional knowledge context injected.
+ * Scans all recent messages + the current user message for city mentions.
+ */
+function buildSystemPrompt(userMessage: string, previousMessages: { role: string; content: string }[]): string {
+  // Check user message and recent messages for city mentions
+  const allText = [userMessage, ...previousMessages.slice(-6).map(m => m.content)].join(' ');
+  const knowledge = buildKnowledgeContext(allText);
+
+  if (!knowledge) return SYSTEM_PROMPT;
+
+  return `${SYSTEM_PROMPT}\n\n---\n# 목적지 참고 정보 (Knowledge Base)\n아래 정보를 참고하여 구체적이고 정확한 추천을 해주세요.\n${knowledge}`;
+}
 
 // Zod schema for validating LLM itinerary output
 const placePayloadSchema = z.object({
@@ -160,8 +183,11 @@ export async function processChat(
     createdAt: new Date().toISOString(),
   });
 
+  // Build system prompt with knowledge context
+  const systemPrompt = buildSystemPrompt(userMessage, apiMessages);
+
   // Call LLM
-  const response = await callLLM(apiMessages, apiKey, env);
+  const response = await callLLM(apiMessages, apiKey, env, systemPrompt);
 
   // Save assistant message (save the full response including JSON for history)
   db.addMessage({
@@ -215,13 +241,16 @@ export function createStreamingResponse(
           createdAt: new Date().toISOString(),
         });
 
+        // Build system prompt with knowledge context
+        const systemPrompt = buildSystemPrompt(userMessage, apiMessages);
+
         // Stream from LLM
         let fullText = '';
 
         if (env.LLM_PROVIDER === 'openai') {
-          fullText = await streamOpenAI(apiMessages, apiKey, env, controller, encoder);
+          fullText = await streamOpenAI(apiMessages, apiKey, env, controller, encoder, systemPrompt);
         } else {
-          fullText = await streamAnthropic(apiMessages, apiKey, env, controller, encoder);
+          fullText = await streamAnthropic(apiMessages, apiKey, env, controller, encoder, systemPrompt);
         }
 
         // Parse for itinerary
@@ -267,7 +296,8 @@ async function streamAnthropic(
   apiKey: string,
   env: ReturnType<typeof getEnv>,
   controller: ReadableStreamDefaultController<Uint8Array>,
-  encoder: TextEncoder
+  encoder: TextEncoder,
+  systemPrompt: string = SYSTEM_PROMPT
 ): Promise<string> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -280,7 +310,7 @@ async function streamAnthropic(
       model: env.ANTHROPIC_MODEL,
       max_tokens: 4096,
       stream: true,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: messages.map((m) => ({
         role: m.role === 'system' ? 'user' : m.role,
         content: m.content,
@@ -334,10 +364,11 @@ async function streamOpenAI(
   apiKey: string,
   env: ReturnType<typeof getEnv>,
   controller: ReadableStreamDefaultController<Uint8Array>,
-  encoder: TextEncoder
+  encoder: TextEncoder,
+  systemPrompt: string = SYSTEM_PROMPT
 ): Promise<string> {
   const allMessages = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: systemPrompt },
     ...messages,
   ];
 
@@ -401,14 +432,15 @@ async function streamOpenAI(
 async function callLLM(
   messages: { role: string; content: string }[],
   apiKey: string,
-  env: ReturnType<typeof getEnv>
+  env: ReturnType<typeof getEnv>,
+  systemPrompt: string = SYSTEM_PROMPT
 ): Promise<AgentResponse> {
   let responseText: string;
 
   if (env.LLM_PROVIDER === 'openai') {
-    responseText = await callOpenAI(messages, apiKey, env);
+    responseText = await callOpenAI(messages, apiKey, env, systemPrompt);
   } else {
-    responseText = await callAnthropic(messages, apiKey, env);
+    responseText = await callAnthropic(messages, apiKey, env, systemPrompt);
   }
 
   const itineraryData = extractItineraryJson(responseText);
@@ -427,7 +459,8 @@ async function callLLM(
 async function callAnthropic(
   messages: { role: string; content: string }[],
   apiKey: string,
-  env: ReturnType<typeof getEnv>
+  env: ReturnType<typeof getEnv>,
+  systemPrompt: string = SYSTEM_PROMPT
 ): Promise<string> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -439,7 +472,7 @@ async function callAnthropic(
     body: JSON.stringify({
       model: env.ANTHROPIC_MODEL,
       max_tokens: 4096,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: messages.map((m) => ({
         role: m.role === 'system' ? 'user' : m.role,
         content: m.content,
@@ -461,10 +494,11 @@ async function callAnthropic(
 async function callOpenAI(
   messages: { role: string; content: string }[],
   apiKey: string,
-  env: ReturnType<typeof getEnv>
+  env: ReturnType<typeof getEnv>,
+  systemPrompt: string = SYSTEM_PROMPT
 ): Promise<string> {
   const allMessages = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: systemPrompt },
     ...messages,
   ];
 
