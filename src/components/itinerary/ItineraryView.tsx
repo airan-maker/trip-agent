@@ -3,6 +3,7 @@
 import { Itinerary } from '@/types/trip';
 import DaySection from './DaySection';
 import ShareButton from '../shared/ShareButton';
+import AdBanner from '../shared/AdBanner';
 import {
   MapPin,
   Calendar,
@@ -99,9 +100,17 @@ MnYtMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-50" />
 
       {/* Days */}
       <div className="max-w-2xl mx-auto px-4 py-8">
-        {days.map((day) => (
-          <div key={day.dayIndex} id={`day-${day.dayIndex}`}>
-            <DaySection day={day} />
+        {days.map((day, i) => (
+          <div key={day.dayIndex}>
+            <div id={`day-${day.dayIndex}`}>
+              <DaySection day={day} />
+            </div>
+            {/* Show ad after every 2nd day */}
+            {i > 0 && i % 2 === 1 && i < days.length - 1 && (
+              <div className="my-6">
+                <AdBanner slot="ITINERARY_BETWEEN_DAYS" format="rectangle" className="rounded-2xl" />
+              </div>
+            )}
           </div>
         ))}
 

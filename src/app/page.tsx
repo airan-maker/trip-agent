@@ -15,6 +15,8 @@ import {
   Clock,
   ChevronRight,
 } from 'lucide-react';
+import Link from 'next/link';
+import AdBanner from '@/components/shared/AdBanner';
 
 const DESTINATIONS = [
   { name: '가나자와', nameJa: '金沢', emoji: '🏯', desc: '전통과 현대의 우아한 조화' },
@@ -245,6 +247,11 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Ad */}
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <AdBanner slot="LANDING_HORIZONTAL" format="horizontal" className="rounded-2xl" />
+      </div>
+
       {/* CTA */}
       <section className="py-20">
         <div className="max-w-4xl mx-auto px-4">
@@ -285,7 +292,12 @@ export default function LandingPage() {
             </div>
             <span className="text-sm font-semibold text-gray-400">TripTalk</span>
           </div>
-          <p className="text-xs text-gray-400">대화하면 완성되는 여행 일정</p>
+          <div className="flex items-center gap-4">
+            <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+              개인정보처리방침
+            </Link>
+            <p className="text-xs text-gray-400">대화하면 완성되는 여행 일정</p>
+          </div>
         </div>
       </footer>
     </div>
