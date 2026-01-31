@@ -16,7 +16,6 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
-import AdBanner from '@/components/shared/AdBanner';
 
 const DESTINATIONS = [
   { name: '가나자와', nameJa: '金沢', emoji: '🏯', desc: '전통과 현대의 우아한 조화' },
@@ -246,11 +245,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* Ad */}
-      <div className="max-w-4xl mx-auto px-4 py-4">
-        <AdBanner slot="LANDING_HORIZONTAL" format="horizontal" className="rounded-2xl" />
-      </div>
 
       {/* CTA */}
       <section className="py-20">
