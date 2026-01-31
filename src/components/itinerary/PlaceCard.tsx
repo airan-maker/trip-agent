@@ -15,6 +15,9 @@ import {
   TreePine,
   Landmark,
 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { motion } from 'framer-motion';
 
 const categoryConfig: Record<string, { icon: React.ReactNode; bg: string; text: string; border: string }> = {
   '관광지': { icon: <Camera className="w-4 h-4" />, bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100' },
@@ -45,72 +48,74 @@ export default function PlaceCard({ place, showTimeSlot = false }: PlaceCardProp
   const slot = timeSlotLabels[place.timeSlot];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm card-hover p-4">
-      <div className="flex items-start gap-3">
-        {/* Category icon */}
-        <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${config.bg} ${config.text} flex items-center justify-center border ${config.border}`}>
-          {config.icon}
-        </div>
+    <motion.div
+      whileHover={{ y: -2, boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.08)' }}
+      transition={{ duration: 0.2 }}
+    >
+      <Card className="p-4">
+        <CardContent className="p-0">
+          <div className="flex items-start gap-3">
+            <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${config.bg} ${config.text} flex items-center justify-center border ${config.border}`}>
+              {config.icon}
+            </div>
 
-        <div className="flex-1 min-w-0">
-          {/* Header row */}
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            {showTimeSlot && slot && (
-              <span className={`text-[0.65rem] font-semibold px-2 py-0.5 rounded-md ${slot.color}`}>
-                {slot.label}
-              </span>
-            )}
-            <h3 className="font-bold text-sm text-gray-900">{place.name}</h3>
-            {place.nameLocal && (
-              <span className="text-xs text-gray-400 font-light">{place.nameLocal}</span>
-            )}
-          </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                {showTimeSlot && slot && (
+                  <Badge variant="secondary" className={`text-[0.65rem] ${slot.color}`}>
+                    {slot.label}
+                  </Badge>
+                )}
+                <h3 className="font-bold text-sm text-gray-900">{place.name}</h3>
+                {place.nameLocal && (
+                  <span className="text-xs text-gray-400 font-light">{place.nameLocal}</span>
+                )}
+              </div>
 
-          {/* Description */}
-          <p className="text-xs text-gray-500 leading-relaxed mb-2">
-            {place.description}
-          </p>
+              <p className="text-xs text-gray-500 leading-relaxed mb-2">
+                {place.description}
+              </p>
 
-          {/* Metadata badges */}
-          <div className="flex flex-wrap items-center gap-2">
-            {place.rating != null && place.rating > 0 && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
-                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                {place.rating}
-              </span>
-            )}
-            {place.duration && (
-              <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">
-                <Clock className="w-3 h-3" />
-                {place.duration}
-              </span>
-            )}
-            {place.cost && (
-              <span className="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">
-                {place.cost}
-              </span>
-            )}
-          </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {place.rating != null && place.rating > 0 && (
+                  <Badge variant="amber">
+                    <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                    {place.rating}
+                  </Badge>
+                )}
+                {place.duration && (
+                  <Badge variant="secondary">
+                    <Clock className="w-3 h-3" />
+                    {place.duration}
+                  </Badge>
+                )}
+                {place.cost && (
+                  <Badge variant="secondary">
+                    {place.cost}
+                  </Badge>
+                )}
+              </div>
 
-          {/* Address / Hours */}
-          {(place.address || place.openingHours) && (
-            <div className="mt-2 space-y-0.5">
-              {place.address && (
-                <div className="flex items-center gap-1.5 text-[0.7rem] text-gray-400">
-                  <MapPin className="w-3 h-3 flex-shrink-0" />
-                  <span className="truncate">{place.address}</span>
-                </div>
-              )}
-              {place.openingHours && (
-                <div className="flex items-center gap-1.5 text-[0.7rem] text-gray-400">
-                  <Clock className="w-3 h-3 flex-shrink-0" />
-                  <span>{place.openingHours}</span>
+              {(place.address || place.openingHours) && (
+                <div className="mt-2 space-y-0.5">
+                  {place.address && (
+                    <div className="flex items-center gap-1.5 text-[0.7rem] text-gray-400">
+                      <MapPin className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{place.address}</span>
+                    </div>
+                  )}
+                  {place.openingHours && (
+                    <div className="flex items-center gap-1.5 text-[0.7rem] text-gray-400">
+                      <Clock className="w-3 h-3 flex-shrink-0" />
+                      <span>{place.openingHours}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
-      </div>
-    </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

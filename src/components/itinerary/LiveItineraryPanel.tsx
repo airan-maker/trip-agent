@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Itinerary, Place } from '@/types/trip';
 import {
-  Plane,
   MapPin,
   Clock,
   Calendar,
@@ -19,10 +18,13 @@ import {
   Sparkles,
 } from 'lucide-react';
 import ShareButton from '../shared/ShareButton';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface LiveItineraryPanelProps {
   tripId: string;
-  refreshKey: number; // increment to trigger re-fetch
+  refreshKey: number;
 }
 
 const categoryIcons: Record<string, React.ReactNode> = {
@@ -53,7 +55,12 @@ function CompactPlaceCard({ place }: { place: Place }) {
   const color = categoryColors[place.category] || 'bg-gray-50 text-gray-500 border-gray-100';
 
   return (
-    <div className="flex items-center gap-2.5 py-2 animate-fade-in">
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3 }}
+      className="flex items-center gap-2.5 py-2"
+    >
       <div className={`flex-shrink-0 w-7 h-7 rounded-lg border flex items-center justify-center ${color}`}>
         {icon}
       </div>
@@ -66,7 +73,7 @@ function CompactPlaceCard({ place }: { place: Place }) {
           </p>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -82,12 +89,11 @@ export default function LiveItineraryPanel({ tripId, refreshKey }: LiveItinerary
       if (!res.ok) return;
       const data: Itinerary = await res.json();
       setItinerary(data);
-      // Auto-expand all days on first load
       if (data.days.length > 0) {
         setExpandedDays(new Set(data.days.map((d) => d.dayIndex)));
       }
     } catch {
-      // Silently fail - panel is supplementary
+      // Silently fail
     } finally {
       setLoading(false);
     }
@@ -108,7 +114,6 @@ export default function LiveItineraryPanel({ tripId, refreshKey }: LiveItinerary
     });
   };
 
-  // Empty state
   if (!itinerary || itinerary.days.length === 0) {
     return (
       <div className="h-full flex flex-col">
@@ -150,31 +155,30 @@ export default function LiveItineraryPanel({ tripId, refreshKey }: LiveItinerary
           {loading && <Loader2 className="w-3.5 h-3.5 text-violet-400 animate-spin flex-shrink-0" />}
         </div>
 
-        {/* Quick stats */}
         <div className="flex flex-wrap gap-1.5">
           {trip.destination && (
-            <span className="inline-flex items-center gap-1 text-[0.6rem] bg-violet-50 text-violet-600 px-2 py-0.5 rounded-md">
+            <Badge variant="violet" className="text-[0.6rem]">
               <MapPin className="w-2.5 h-2.5" />
               {trip.destination}
-            </span>
+            </Badge>
           )}
           {days.length > 0 && (
-            <span className="inline-flex items-center gap-1 text-[0.6rem] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md">
+            <Badge variant="blue" className="text-[0.6rem]">
               <Calendar className="w-2.5 h-2.5" />
               {days.length}일
-            </span>
+            </Badge>
           )}
           {totalPlaces > 0 && (
-            <span className="inline-flex items-center gap-1 text-[0.6rem] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-md">
+            <Badge variant="emerald" className="text-[0.6rem]">
               <MapPin className="w-2.5 h-2.5" />
               {totalPlaces}곳
-            </span>
+            </Badge>
           )}
           {trip.travelers && (
-            <span className="inline-flex items-center gap-1 text-[0.6rem] bg-orange-50 text-orange-600 px-2 py-0.5 rounded-md">
+            <Badge variant="orange" className="text-[0.6rem]">
               <Users className="w-2.5 h-2.5" />
               {trip.travelers}
-            </span>
+            </Badge>
           )}
         </div>
       </div>
@@ -192,42 +196,52 @@ export default function LiveItineraryPanel({ tripId, refreshKey }: LiveItinerary
             .filter((g) => g.places.length > 0);
 
           return (
-            <div key={day.dayIndex} className="border-b border-gray-50 last:border-b-0">
-              {/* Day header (collapsible) */}
-              <button
-                onClick={() => toggleDay(day.dayIndex)}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50/50 transition-colors text-left"
-              >
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                  {day.dayIndex}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-gray-900 truncate">{day.title}</p>
-                  <p className="text-[0.6rem] text-gray-400">{day.places.length}곳</p>
-                </div>
-                {isExpanded ? (
-                  <ChevronDown className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                )}
-              </button>
+            <Collapsible
+              key={day.dayIndex}
+              open={isExpanded}
+              onOpenChange={() => toggleDay(day.dayIndex)}
+            >
+              <div className="border-b border-gray-50 last:border-b-0">
+                <CollapsibleTrigger className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50/50 transition-colors text-left">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                    {day.dayIndex}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-gray-900 truncate">{day.title}</p>
+                    <p className="text-[0.6rem] text-gray-400">{day.places.length}곳</p>
+                  </div>
+                  {isExpanded ? (
+                    <ChevronDown className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0" />
+                  )}
+                </CollapsibleTrigger>
 
-              {/* Expanded places */}
-              {isExpanded && (
-                <div className="px-4 pb-3 space-y-1">
-                  {grouped.map((group) => (
-                    <div key={group.slot}>
-                      <p className="text-[0.6rem] font-semibold text-gray-300 uppercase tracking-wider mt-2 mb-1">
-                        {timeSlotLabels[group.slot] || group.slot}
-                      </p>
-                      {group.places.map((place) => (
-                        <CompactPlaceCard key={place.id} place={place} />
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <CollapsibleContent className="px-4 pb-3 space-y-1">
+                        {grouped.map((group) => (
+                          <div key={group.slot}>
+                            <p className="text-[0.6rem] font-semibold text-gray-300 uppercase tracking-wider mt-2 mb-1">
+                              {timeSlotLabels[group.slot] || group.slot}
+                            </p>
+                            {group.places.map((place) => (
+                              <CompactPlaceCard key={place.id} place={place} />
+                            ))}
+                          </div>
+                        ))}
+                      </CollapsibleContent>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </Collapsible>
           );
         })}
       </div>

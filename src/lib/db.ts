@@ -273,6 +273,22 @@ export function getItinerary(tripId: string) {
   return { trip, days };
 }
 
+// Reorder places within a day
+export function reorderPlaces(tripId: string, dayIndex: number, placeIds: string[]): void {
+  const database = getDb();
+  const updateStmt = database.prepare(
+    'UPDATE places SET orderIndex = ? WHERE id = ? AND tripId = ? AND dayIndex = ?'
+  );
+
+  const transaction = database.transaction(() => {
+    for (let i = 0; i < placeIds.length; i++) {
+      updateStmt.run(i, placeIds[i], tripId, dayIndex);
+    }
+  });
+
+  transaction();
+}
+
 // Health check
 export function healthCheck(): boolean {
   try {

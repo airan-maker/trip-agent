@@ -2,6 +2,8 @@
 
 import { ItineraryDay } from '@/types/trip';
 import PlaceCard from './PlaceCard';
+import { motion } from 'framer-motion';
+import { staggerContainer, staggerItem } from '@/lib/animations';
 
 interface DaySectionProps {
   day: ItineraryDay;
@@ -25,7 +27,13 @@ export default function DaySection({ day }: DaySectionProps) {
     .filter((g) => g.places.length > 0);
 
   return (
-    <div className="mb-10 animate-fade-in-up">
+    <motion.div
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-50px" }}
+      variants={staggerContainer}
+      className="mb-10"
+    >
       {/* Day header */}
       <div className="sticky top-12 z-10 bg-[#fafafa]/95 backdrop-blur-sm py-3 mb-5">
         <div className="flex items-center gap-4">
@@ -51,22 +59,22 @@ export default function DaySection({ day }: DaySectionProps) {
       <div className="pl-6 ml-6 border-l-2 border-violet-100 space-y-4">
         {grouped.map((group) => (
           <div key={group.slot}>
-            {/* Time slot header */}
             <div className="relative mb-3">
               <div className="absolute -left-[1.85rem] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-violet-200 border-[3px] border-white shadow-sm" />
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 {timeSlotHeaders[group.slot]?.icon} {timeSlotHeaders[group.slot]?.label || group.slot}
               </span>
             </div>
-            {/* Place cards for this slot */}
             <div className="space-y-3">
               {group.places.map((place) => (
-                <PlaceCard key={place.id} place={place} />
+                <motion.div key={place.id} variants={staggerItem}>
+                  <PlaceCard place={place} />
+                </motion.div>
               ))}
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }

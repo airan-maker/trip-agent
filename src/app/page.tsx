@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import {
   Plane,
   MessageCircle,
@@ -16,6 +17,10 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { fadeInUp, staggerContainer, staggerItem } from '@/lib/animations';
 
 const DESTINATIONS = [
   { name: '가나자와', nameJa: '金沢', emoji: '🏯', desc: '전통과 현대의 우아한 조화' },
@@ -37,7 +42,7 @@ export default function LandingPage() {
       router.push(`/chat/${trip.id}`);
     } catch {
       setIsCreating(false);
-      alert('오류가 발생했어요. 다시 시도해주세요.');
+      toast.error('오류가 발생했어요. 다시 시도해주세요.');
     }
   };
 
@@ -52,13 +57,9 @@ export default function LandingPage() {
             </div>
             <span className="font-bold text-lg tracking-tight">TripTalk</span>
           </div>
-          <button
-            onClick={startTrip}
-            disabled={isCreating}
-            className="text-sm font-medium text-violet-600 hover:text-violet-700 transition-colors flex items-center gap-1"
-          >
+          <Button variant="ghost" size="sm" onClick={startTrip} disabled={isCreating}>
             시작하기 <ChevronRight className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       </nav>
 
@@ -68,58 +69,83 @@ export default function LandingPage() {
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-violet-200/30 rounded-full blur-3xl" />
 
         <div className="relative max-w-4xl mx-auto px-4 pt-20 pb-16 text-center">
-          <div className="animate-fade-in-up">
-            <div className="inline-flex items-center gap-2 bg-white border border-violet-100 rounded-full px-4 py-1.5 text-sm font-medium text-violet-700 shadow-sm mb-8">
-              <Sparkles className="w-3.5 h-3.5" />
-              AI 여행 플래너
-            </div>
-          </div>
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+          >
+            <motion.div variants={fadeInUp}>
+              <div className="inline-flex items-center gap-2 bg-white border border-violet-100 rounded-full px-4 py-1.5 text-sm font-medium text-violet-700 shadow-sm mb-8">
+                <Sparkles className="w-3.5 h-3.5" />
+                AI 여행 플래너
+              </div>
+            </motion.div>
 
-          <h1 className="animate-fade-in-up text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 leading-[1.15] tracking-tight" style={{ animationDelay: '80ms' }}>
-            대화하면 완성되는
-            <br />
-            <span className="gradient-text">나만의 여행 일정</span>
-          </h1>
-
-          <p className="animate-fade-in-up text-lg md:text-xl text-gray-500 mb-10 max-w-lg mx-auto leading-relaxed" style={{ animationDelay: '160ms' }}>
-            AI와 대화하며 여행을 기획하고,
-            <br className="hidden sm:block" />
-            공유 가능한 웹 일정을 자동으로 만들어보세요.
-          </p>
-
-          <div className="animate-fade-in-up" style={{ animationDelay: '240ms' }}>
-            <button
-              onClick={startTrip}
-              disabled={isCreating}
-              className="group inline-flex items-center gap-3 bg-gray-900 text-white px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-gray-800 transition-all disabled:opacity-60 shadow-xl shadow-gray-900/10"
+            <motion.h1
+              variants={fadeInUp}
+              className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 leading-[1.15] tracking-tight"
             >
-              {isCreating ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  준비 중...
-                </>
-              ) : (
-                <>
-                  여행 계획 시작하기
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
-            </button>
-            <p className="text-xs text-gray-400 mt-4">로그인 없이 바로 시작</p>
-          </div>
+              대화하면 완성되는
+              <br />
+              <span className="gradient-text">나만의 여행 일정</span>
+            </motion.h1>
+
+            <motion.p
+              variants={fadeInUp}
+              className="text-lg md:text-xl text-gray-500 mb-10 max-w-lg mx-auto leading-relaxed"
+            >
+              AI와 대화하며 여행을 기획하고,
+              <br className="hidden sm:block" />
+              공유 가능한 웹 일정을 자동으로 만들어보세요.
+            </motion.p>
+
+            <motion.div variants={fadeInUp}>
+              <Button
+                size="lg"
+                onClick={startTrip}
+                disabled={isCreating}
+                className="group shadow-xl shadow-gray-900/10 text-lg font-semibold gap-3"
+              >
+                {isCreating ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    준비 중...
+                  </>
+                ) : (
+                  <>
+                    여행 계획 시작하기
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </>
+                )}
+              </Button>
+              <p className="text-xs text-gray-400 mt-4">로그인 없이 바로 시작</p>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* How it works */}
       <section className="max-w-4xl mx-auto px-4 py-20">
-        <div className="text-center mb-14">
-          <p className="text-sm font-semibold text-violet-600 mb-2">HOW IT WORKS</p>
-          <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={staggerContainer}
+          className="text-center mb-14"
+        >
+          <motion.p variants={fadeInUp} className="text-sm font-semibold text-violet-600 mb-2">HOW IT WORKS</motion.p>
+          <motion.h2 variants={fadeInUp} className="text-3xl font-bold text-gray-900 tracking-tight">
             4단계로 완성하는 여행
-          </h2>
-        </div>
+          </motion.h2>
+        </motion.div>
 
-        <div className="grid md:grid-cols-4 gap-6 stagger-children">
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+          variants={staggerContainer}
+          className="grid md:grid-cols-4 gap-6"
+        >
           {[
             {
               icon: <MessageCircle className="w-5 h-5" />,
@@ -146,110 +172,120 @@ export default function LandingPage() {
               gradient: 'from-orange-500 to-rose-500',
             },
           ].map((item, i) => (
-            <div key={i} className="relative group">
-              <div className="bg-white rounded-2xl border border-gray-100 p-6 card-hover h-full">
+            <motion.div key={i} variants={staggerItem} className="relative group">
+              <Card className="p-6 h-full hover:shadow-md transition-shadow">
                 <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${item.gradient} flex items-center justify-center text-white mb-4`}>
                   {item.icon}
                 </div>
                 <span className="absolute top-4 right-4 text-xs font-bold text-gray-200">0{i + 1}</span>
                 <h3 className="font-bold text-gray-900 mb-1.5">{item.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
-              </div>
-            </div>
+              </Card>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </section>
 
       {/* Destination showcase */}
       <section className="py-20 bg-white border-y border-gray-100">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="text-center mb-14">
-            <p className="text-sm font-semibold text-violet-600 mb-2">DESTINATIONS</p>
-            <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={staggerContainer}
+            className="text-center mb-14"
+          >
+            <motion.p variants={fadeInUp} className="text-sm font-semibold text-violet-600 mb-2">DESTINATIONS</motion.p>
+            <motion.h2 variants={fadeInUp} className="text-3xl font-bold text-gray-900 tracking-tight">
               일본 소도시 여행 전문
-            </h2>
-            <p className="text-gray-500 mt-3 max-w-md mx-auto">
+            </motion.h2>
+            <motion.p variants={fadeInUp} className="text-gray-500 mt-3 max-w-md mx-auto">
               관광객이 몰리지 않는 매력적인 일본 소도시들을 AI와 함께 기획해보세요.
-            </p>
-          </div>
+            </motion.p>
+          </motion.div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger-children">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={staggerContainer}
+            className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          >
             {DESTINATIONS.map((dest) => (
-              <button
+              <motion.button
                 key={dest.name}
+                variants={staggerItem}
+                whileHover={{ y: -2 }}
                 onClick={startTrip}
                 disabled={isCreating}
-                className="group text-left bg-gray-50 hover:bg-violet-50 border border-gray-100 hover:border-violet-200 rounded-2xl p-5 transition-all card-hover"
+                className="group text-left"
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-2xl">{dest.emoji}</span>
-                  <div>
-                    <h3 className="font-bold text-gray-900 group-hover:text-violet-700 transition-colors">
-                      {dest.name}
-                    </h3>
-                    <p className="text-xs text-gray-400">{dest.nameJa}</p>
+                <Card className="p-5 h-full hover:bg-violet-50 hover:border-violet-200 transition-all hover:shadow-md">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-2xl">{dest.emoji}</span>
+                    <div>
+                      <h3 className="font-bold text-gray-900 group-hover:text-violet-700 transition-colors">
+                        {dest.name}
+                      </h3>
+                      <p className="text-xs text-gray-400">{dest.nameJa}</p>
+                    </div>
                   </div>
-                </div>
-                <p className="text-sm text-gray-500">{dest.desc}</p>
-              </button>
+                  <p className="text-sm text-gray-500">{dest.desc}</p>
+                </Card>
+              </motion.button>
             ))}
-            <div className="flex items-center justify-center bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-100 rounded-2xl p-5 text-center">
-              <div>
-                <MapPin className="w-6 h-6 text-violet-400 mx-auto mb-2" />
-                <p className="text-sm font-medium text-violet-700">더 많은 도시</p>
-                <p className="text-xs text-violet-400 mt-1">계속 추가 중!</p>
-              </div>
-            </div>
-          </div>
+            <motion.div variants={staggerItem}>
+              <Card className="bg-gradient-to-br from-violet-50 to-purple-50 border-violet-100 p-5 flex items-center justify-center text-center h-full">
+                <CardContent className="p-0">
+                  <MapPin className="w-6 h-6 text-violet-400 mx-auto mb-2" />
+                  <p className="text-sm font-medium text-violet-700">더 많은 도시</p>
+                  <p className="text-xs text-violet-400 mt-1">계속 추가 중!</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* Features */}
       <section className="max-w-4xl mx-auto px-4 py-20">
-        <div className="grid md:grid-cols-2 gap-5">
-          <div className="bg-white rounded-2xl border border-gray-100 p-7 card-hover">
-            <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600 mb-4">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-gray-900 mb-2">맥락을 이해하는 대화</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              한꺼번에 다 물어보지 않아요. 대화 흐름에 맞춰 자연스럽게 여행 계획을 완성해갑니다.
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl border border-gray-100 p-7 card-hover">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 mb-4">
-              <MapPin className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-gray-900 mb-2">구조화된 현지 지식</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              운영시간, 입장료, 교통편, 현지 맛집까지 사전 검증된 데이터 기반 추천을 제공합니다.
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl border border-gray-100 p-7 card-hover">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 mb-4">
-              <Clock className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-gray-900 mb-2">실시간 스트리밍 응답</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              기다림 없이 AI의 답변이 실시간으로 화면에 나타납니다. 자연스러운 대화 경험.
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl border border-gray-100 p-7 card-hover">
-            <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 mb-4">
-              <Share2 className="w-5 h-5" />
-            </div>
-            <h3 className="font-bold text-gray-900 mb-2">링크로 간편 공유</h3>
-            <p className="text-sm text-gray-500 leading-relaxed">
-              가족, 친구에게 링크만 보내면 끝. 앱 없이 브라우저에서 바로 확인할 수 있어요.
-            </p>
-          </div>
-        </div>
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+          variants={staggerContainer}
+          className="grid md:grid-cols-2 gap-5"
+        >
+          {[
+            { icon: <Sparkles className="w-5 h-5" />, iconBg: 'bg-violet-50 text-violet-600', title: '맥락을 이해하는 대화', desc: '한꺼번에 다 물어보지 않아요. 대화 흐름에 맞춰 자연스럽게 여행 계획을 완성해갑니다.' },
+            { icon: <MapPin className="w-5 h-5" />, iconBg: 'bg-blue-50 text-blue-600', title: '구조화된 현지 지식', desc: '운영시간, 입장료, 교통편, 현지 맛집까지 사전 검증된 데이터 기반 추천을 제공합니다.' },
+            { icon: <Clock className="w-5 h-5" />, iconBg: 'bg-emerald-50 text-emerald-600', title: '실시간 스트리밍 응답', desc: '기다림 없이 AI의 답변이 실시간으로 화면에 나타납니다. 자연스러운 대화 경험.' },
+            { icon: <Share2 className="w-5 h-5" />, iconBg: 'bg-orange-50 text-orange-600', title: '링크로 간편 공유', desc: '가족, 친구에게 링크만 보내면 끝. 앱 없이 브라우저에서 바로 확인할 수 있어요.' },
+          ].map((item, i) => (
+            <motion.div key={i} variants={staggerItem}>
+              <Card className="p-7 hover:shadow-md transition-shadow">
+                <div className={`w-10 h-10 rounded-xl ${item.iconBg} flex items-center justify-center mb-4`}>
+                  {item.icon}
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">{item.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+              </Card>
+            </motion.div>
+          ))}
+        </motion.div>
       </section>
 
       {/* CTA */}
       <section className="py-20">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-3xl p-10 md:p-14 text-center">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={fadeInUp}
+            className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-3xl p-10 md:p-14 text-center"
+          >
             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-violet-500/20 rounded-full blur-3xl" />
             <div className="relative">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 tracking-tight">
@@ -258,10 +294,12 @@ export default function LandingPage() {
               <p className="text-gray-400 mb-8 max-w-md mx-auto">
                 로그인 없이, 비용 없이. AI와 대화만으로 완벽한 여행 일정을 만들 수 있어요.
               </p>
-              <button
+              <Button
+                size="lg"
+                variant="outline"
                 onClick={startTrip}
                 disabled={isCreating}
-                className="group inline-flex items-center gap-3 bg-white text-gray-900 px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-gray-100 transition-colors disabled:opacity-60"
+                className="group bg-white text-gray-900 border-0 hover:bg-gray-100 text-lg font-semibold gap-3"
               >
                 {isCreating ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -271,9 +309,9 @@ export default function LandingPage() {
                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   </>
                 )}
-              </button>
+              </Button>
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 

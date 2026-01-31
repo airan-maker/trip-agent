@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { ArrowUp } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -44,7 +46,7 @@ export default function ChatInput({
     <div className="border-t border-gray-100 bg-white/80 backdrop-blur-xl px-4 py-3">
       <div className="flex items-end gap-2 max-w-3xl mx-auto">
         <div className="flex-1 relative">
-          <textarea
+          <Textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -52,19 +54,20 @@ export default function ChatInput({
             placeholder={placeholder}
             disabled={disabled}
             rows={1}
-            className="w-full resize-none rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 pr-12 text-[0.9rem] focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-300 focus:bg-white disabled:opacity-50 disabled:bg-gray-50 transition-all placeholder:text-gray-400"
+            className="pr-12"
           />
-          <button
+          <Button
+            size="icon"
             onClick={handleSubmit}
             disabled={!canSend}
-            className={`absolute right-2 bottom-2 w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+            className={`absolute right-2 bottom-2 w-8 h-8 rounded-xl ${
               canSend
-                ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-sm'
+                ? 'bg-gray-900 text-white hover:bg-gray-800'
                 : 'bg-gray-200 text-gray-400'
             }`}
           >
             <ArrowUp className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       </div>
       <p className="text-center text-[0.65rem] text-gray-400 mt-2 max-w-3xl mx-auto">

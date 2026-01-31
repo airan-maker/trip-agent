@@ -5,6 +5,9 @@ import { Itinerary } from '@/types/trip';
 import ItineraryView from '@/components/itinerary/ItineraryView';
 import { Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import PageTransition from '@/components/shared/PageTransition';
 
 interface TripClientPageProps {
   tripId: string;
@@ -52,20 +55,23 @@ export default function TripClientPage({ tripId }: TripClientPageProps) {
   if (error || !itinerary) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center px-4">
-          <p className="text-lg font-medium text-gray-700 mb-2">
-            {error || '일정을 찾을 수 없어요'}
-          </p>
-          <Link
-            href="/"
-            className="text-violet-500 hover:underline text-sm"
-          >
-            홈으로 돌아가기
-          </Link>
-        </div>
+        <Card className="max-w-sm mx-4">
+          <CardContent className="p-8 text-center">
+            <p className="text-lg font-medium text-gray-700 mb-4">
+              {error || '일정을 찾을 수 없어요'}
+            </p>
+            <Button variant="violet" asChild>
+              <Link href="/">홈으로 돌아가기</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  return <ItineraryView itinerary={itinerary} />;
+  return (
+    <PageTransition>
+      <ItineraryView itinerary={itinerary} />
+    </PageTransition>
+  );
 }

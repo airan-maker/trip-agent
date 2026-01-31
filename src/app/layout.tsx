@@ -1,6 +1,16 @@
 import type { Metadata, Viewport } from "next";
+import { Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import ErrorBoundary from "@/components/shared/ErrorBoundary";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "sonner";
+
+const notoSansKR = Noto_Sans_KR({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-noto-sans-kr",
+});
 
 export const metadata: Metadata = {
   title: "TripTalk - 대화하면 완성되는 여행 일정",
@@ -31,9 +41,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko">
-      <body className="antialiased">
-        <ErrorBoundary>{children}</ErrorBoundary>
+    <html lang="ko" className={notoSansKR.variable}>
+      <body className={`${notoSansKR.className} antialiased`}>
+        <TooltipProvider>
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </TooltipProvider>
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            style: {
+              borderRadius: '12px',
+              fontSize: '14px',
+            },
+          }}
+        />
       </body>
     </html>
   );

@@ -2,6 +2,9 @@
 
 import { useState } from 'react';
 import { Share2, Link2, Check, QrCode } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 
 interface ShareButtonProps {
   tripId: string;
@@ -20,9 +23,9 @@ export default function ShareButton({ tripId, variant = 'icon' }: ShareButtonPro
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
+      toast.success('링크가 복사되었어요!');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback
       const input = document.createElement('input');
       input.value = shareUrl;
       document.body.appendChild(input);
@@ -30,6 +33,7 @@ export default function ShareButton({ tripId, variant = 'icon' }: ShareButtonPro
       document.execCommand('copy');
       document.body.removeChild(input);
       setCopied(true);
+      toast.success('링크가 복사되었어요!');
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -53,43 +57,38 @@ export default function ShareButton({ tripId, variant = 'icon' }: ShareButtonPro
     return (
       <div className="space-y-3">
         <div className="flex gap-2 justify-center">
-          <button
-            onClick={handleShare}
-            className="inline-flex items-center gap-2 bg-violet-500 text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-violet-600 transition-colors"
-          >
+          <Button variant="violet" onClick={handleShare} className="rounded-full">
             <Share2 className="w-4 h-4" />
             공유하기
-          </button>
-          <button
-            onClick={handleCopy}
-            className="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-5 py-2.5 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
-          >
+          </Button>
+          <Button variant="secondary" onClick={handleCopy} className="rounded-full">
             {copied ? <Check className="w-4 h-4 text-green-500" /> : <Link2 className="w-4 h-4" />}
             {copied ? '복사됨!' : '링크 복사'}
-          </button>
-          <button
-            onClick={() => setShowQR(!showQR)}
-            className="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-5 py-2.5 rounded-full text-sm font-medium hover:bg-gray-200 transition-colors"
-          >
+          </Button>
+          <Button variant="secondary" onClick={() => setShowQR(true)} className="rounded-full">
             <QrCode className="w-4 h-4" />
             QR
-          </button>
+          </Button>
         </div>
-        {showQR && (
-          <div className="flex justify-center">
-            <div className="bg-white p-4 rounded-xl shadow-lg border">
+
+        <Dialog open={showQR} onOpenChange={setShowQR}>
+          <DialogContent onClose={() => setShowQR(false)}>
+            <DialogHeader>
+              <DialogTitle>QR 코드</DialogTitle>
+            </DialogHeader>
+            <div className="flex justify-center py-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={`/api/qr?url=${encodeURIComponent(shareUrl)}`}
                 alt="QR Code"
                 className="w-48 h-48"
               />
-              <p className="text-xs text-gray-400 text-center mt-2">
-                QR 코드를 스캔하세요
-              </p>
             </div>
-          </div>
-        )}
+            <p className="text-xs text-gray-400 text-center">
+              QR 코드를 스캔하세요
+            </p>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }

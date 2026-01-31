@@ -7,6 +7,9 @@ import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
 import { Plane, ExternalLink } from 'lucide-react';
 import { nanoid } from 'nanoid';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { toast } from 'sonner';
 
 interface ChatWindowProps {
   tripId: string;
@@ -31,7 +34,6 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
     scrollToBottom();
   }, [messages, streamingContent, scrollToBottom]);
 
-  // Show greeting on mount if no messages
   useEffect(() => {
     if (messages.length === 0) {
       const greeting: Message = {
@@ -148,11 +150,13 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
+      const errMessage = error instanceof Error ? error.message : '잠시 후 다시 시도해주세요.';
+      toast.error(errMessage);
       const errorMsg: Message = {
         id: nanoid(),
         tripId,
         role: 'assistant',
-        content: `죄송해요, 오류가 발생했어요. ${error instanceof Error ? error.message : '잠시 후 다시 시도해주세요.'}`,
+        content: `죄송해요, 오류가 발생했어요. ${errMessage}`,
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -180,25 +184,25 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
             </div>
           </div>
           {itineraryReady && (
-            <button
+            <Button
+              size="sm"
               onClick={() => router.push(`/trip/${tripId}`)}
-              className="flex items-center gap-1.5 text-sm bg-gray-900 text-white px-4 py-2 rounded-xl hover:bg-gray-800 transition-colors font-medium shadow-sm"
+              className="gap-1.5"
             >
               일정 보기
               <ExternalLink className="w-3.5 h-3.5" />
-            </button>
+            </Button>
           )}
         </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
+      <ScrollArea className="flex-1 px-4 py-6">
         <div className="max-w-3xl mx-auto space-y-5">
           {messages.map((msg) => (
             <ChatMessage key={msg.id} message={msg} />
           ))}
 
-          {/* Streaming message */}
           {streamingContent && (
             <ChatMessage
               message={{
@@ -211,9 +215,8 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
             />
           )}
 
-          {/* Typing indicator */}
           {isLoading && !streamingContent && (
-            <div className="flex gap-3 animate-fade-in">
+            <div className="flex gap-3">
               <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm">
                 <Plane className="w-3.5 h-3.5 text-white" />
               </div>
@@ -229,7 +232,7 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
 
           <div ref={messagesEndRef} />
         </div>
-      </div>
+      </ScrollArea>
 
       {/* Input */}
       <ChatInput
