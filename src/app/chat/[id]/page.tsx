@@ -33,7 +33,7 @@ export default function ChatPage() {
         </div>
 
         {/* Itinerary panel (desktop: always visible) */}
-        <div className="hidden md:flex md:w-[380px] lg:w-[420px] md:border-l border-gray-200/60 bg-white flex-shrink-0 flex-col">
+        <div className="hidden md:flex md:w-[420px] lg:w-[480px] md:border-l border-gray-200/60 bg-white flex-shrink-0 flex-col">
           <LiveItineraryPanel tripId={tripId} refreshKey={refreshKey} />
         </div>
       </div>

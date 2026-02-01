@@ -106,8 +106,11 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
               const event = JSON.parse(data);
               if (event.type === 'text') {
                 accumulated += event.content;
-                const display = accumulated.replace(/```json[\s\S]*?```/g, '').trim();
-                setStreamingContent(display);
+                // Strip complete ```json...``` blocks and incomplete ones (open ```json without closing ```)
+                let display = accumulated.replace(/```json[\s\S]*?```/g, '');
+                display = display.replace(/```json[\s\S]*$/g, '');
+                display = display.trim();
+                setStreamingContent(display || (accumulated.includes('```json') ? '일정을 생성하고 있어요... ✈️' : ''));
               } else if (event.type === 'itinerary_ready') {
                 setItineraryReady(true);
                 onItineraryUpdate?.();
@@ -121,7 +124,11 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
           }
         }
 
-        const finalContent = accumulated.replace(/```json[\s\S]*?```/g, '').trim();
+        let finalContent = accumulated.replace(/```json[\s\S]*?```/g, '');
+        finalContent = finalContent.replace(/```json[\s\S]*$/g, '').trim();
+        if (!finalContent && accumulated.includes('```json')) {
+          finalContent = '일정을 만들었어요! 오른쪽 패널에서 확인해보세요 ✈️';
+        }
         if (finalContent) {
           const assistantMsg: Message = {
             id: nanoid(),
