@@ -28,9 +28,10 @@ function Tabs({ value, onValueChange, children, className }: TabsProps) {
 
 function TabsList({
   className,
+  children,
   ...props
 }: React.ComponentProps<"div"> & { _value?: string; _onValueChange?: (v: string) => void }) {
-  const { _value: _, _onValueChange: __, ...rest } = props
+  const { _value, _onValueChange, ...rest } = props
   return (
     <div
       data-slot="tabs-list"
@@ -39,7 +40,17 @@ function TabsList({
         className
       )}
       {...rest}
-    />
+    >
+      {React.Children.map(children, (child) => {
+        if (React.isValidElement(child)) {
+          return React.cloneElement(child as React.ReactElement<Record<string, unknown>>, {
+            _value,
+            _onValueChange,
+          })
+        }
+        return child
+      })}
+    </div>
   )
 }
 

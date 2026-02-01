@@ -137,19 +137,21 @@ export default function LiveItineraryPanel({ tripId, refreshKey }: LiveItinerary
       </div>
 
       {/* Content */}
-      {viewMode === 'list' ? (
-        <div className="flex-1 overflow-y-auto no-scrollbar bg-[#fafafa]">
-          <div className="px-4 py-6">
-            {days.map((day) => (
-              <DaySection key={day.dayIndex} day={day} />
-            ))}
+      <div className="flex-1 overflow-hidden relative">
+        {viewMode === 'list' ? (
+          <div className="absolute inset-0 overflow-y-auto no-scrollbar bg-[#fafafa]">
+            <div className="px-4 py-6">
+              {days.map((day) => (
+                <DaySection key={day.dayIndex} day={day} />
+              ))}
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="flex-1 bg-[#fafafa]">
-          <DynamicMap days={days} />
-        </div>
-      )}
+        ) : (
+          <div className="absolute inset-0">
+            <DynamicMap days={days} />
+          </div>
+        )}
+      </div>
 
       {/* Bottom actions */}
       <div className="flex-shrink-0 p-3 border-t border-gray-100 bg-gray-50/50">

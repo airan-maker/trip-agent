@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Message } from '@/types/trip';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
+import PlanningProgress from './PlanningProgress';
 import { Plane, ExternalLink } from 'lucide-react';
 import { nanoid } from 'nanoid';
 import { Button } from '@/components/ui/button';
@@ -21,6 +22,7 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
+  const [planningData, setPlanningData] = useState<{ destination?: string; dates?: string; places: string[] } | null>(null);
   const [itineraryReady, setItineraryReady] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -110,7 +112,22 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
                 let display = accumulated.replace(/```json[\s\S]*?```/g, '');
                 display = display.replace(/```json[\s\S]*$/g, '');
                 display = display.trim();
-                setStreamingContent(display || (accumulated.includes('```json') ? '일정을 생성하고 있어요... ✈️' : ''));
+
+                // Extract planning info from incomplete JSON for live preview
+                if (accumulated.includes('```json')) {
+                  const jsonPart = accumulated.split('```json')[1] || '';
+                  const dest = jsonPart.match(/"destination"\s*:\s*"([^"]+)"/)?.[1];
+                  const startDate = jsonPart.match(/"startDate"\s*:\s*"([^"]+)"/)?.[1];
+                  const endDate = jsonPart.match(/"endDate"\s*:\s*"([^"]+)"/)?.[1];
+                  const places = [...jsonPart.matchAll(/"name"\s*:\s*"([^"]+)"/g)].map(m => m[1]);
+                  setPlanningData({
+                    destination: dest,
+                    dates: startDate && endDate ? `${startDate} ~ ${endDate}` : startDate || undefined,
+                    places,
+                  });
+                }
+
+                setStreamingContent(display);
               } else if (event.type === 'itinerary_ready') {
                 setItineraryReady(true);
                 onItineraryUpdate?.();
@@ -124,6 +141,7 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
           }
         }
 
+        setPlanningData(null);
         let finalContent = accumulated.replace(/```json[\s\S]*?```/g, '');
         finalContent = finalContent.replace(/```json[\s\S]*$/g, '').trim();
         if (!finalContent && accumulated.includes('```json')) {
@@ -222,7 +240,15 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
             />
           )}
 
-          {isLoading && !streamingContent && (
+          {planningData && planningData.places.length > 0 && (
+            <PlanningProgress
+              destination={planningData.destination}
+              dates={planningData.dates}
+              places={planningData.places}
+            />
+          )}
+
+          {isLoading && !streamingContent && !planningData && (
             <div className="flex gap-3">
               <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm">
                 <Plane className="w-3.5 h-3.5 text-white" />
