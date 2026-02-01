@@ -5,7 +5,12 @@ import * as db from './db';
 import { z } from 'zod';
 import { buildKnowledgeContext } from './knowledge/japan-cities';
 
-const SYSTEM_PROMPT = `You are TripTalk, a friendly Korean-speaking travel planning AI agent. You help users plan their trips through natural conversation.
+function buildBasePrompt(): string {
+  const today = new Date().toISOString().split('T')[0];
+  return `You are TripTalk, a friendly Korean-speaking travel planning AI agent. You help users plan their trips through natural conversation.
+
+## Current Date
+Today is ${today}. Use this to interpret relative dates like "설날", "이번 겨울", "다음 주" etc. Always plan for upcoming dates, not past ones.
 
 ## Your Personality
 - Warm, enthusiastic, but concise
@@ -89,19 +94,21 @@ When you have structured knowledge about a destination, USE IT to give precise r
 - Include transport options with costs and duration
 - Reference seasonal events if relevant to travel dates
 - Share insider tips from the knowledge base naturally in conversation`;
+}
 
 /**
  * Build system prompt with optional knowledge context injected.
  * Scans all recent messages + the current user message for city mentions.
  */
 function buildSystemPrompt(userMessage: string, previousMessages: { role: string; content: string }[]): string {
+  const basePrompt = buildBasePrompt();
   // Check user message and recent messages for city mentions
   const allText = [userMessage, ...previousMessages.slice(-6).map(m => m.content)].join(' ');
   const knowledge = buildKnowledgeContext(allText);
 
-  if (!knowledge) return SYSTEM_PROMPT;
+  if (!knowledge) return basePrompt;
 
-  return `${SYSTEM_PROMPT}\n\n---\n# 목적지 참고 정보 (Knowledge Base)\n아래 정보를 참고하여 구체적이고 정확한 추천을 해주세요.\n${knowledge}`;
+  return `${basePrompt}\n\n---\n# 목적지 참고 정보 (Knowledge Base)\n아래 정보를 참고하여 구체적이고 정확한 추천을 해주세요.\n${knowledge}`;
 }
 
 // Zod schema for validating LLM itinerary output
@@ -297,7 +304,7 @@ async function streamAnthropic(
   env: ReturnType<typeof getEnv>,
   controller: ReadableStreamDefaultController<Uint8Array>,
   encoder: TextEncoder,
-  systemPrompt: string = SYSTEM_PROMPT
+  systemPrompt: string = buildBasePrompt()
 ): Promise<string> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -365,7 +372,7 @@ async function streamOpenAI(
   env: ReturnType<typeof getEnv>,
   controller: ReadableStreamDefaultController<Uint8Array>,
   encoder: TextEncoder,
-  systemPrompt: string = SYSTEM_PROMPT
+  systemPrompt: string = buildBasePrompt()
 ): Promise<string> {
   const allMessages = [
     { role: 'system', content: systemPrompt },
@@ -433,7 +440,7 @@ async function callLLM(
   messages: { role: string; content: string }[],
   apiKey: string,
   env: ReturnType<typeof getEnv>,
-  systemPrompt: string = SYSTEM_PROMPT
+  systemPrompt: string = buildBasePrompt()
 ): Promise<AgentResponse> {
   let responseText: string;
 
@@ -460,7 +467,7 @@ async function callAnthropic(
   messages: { role: string; content: string }[],
   apiKey: string,
   env: ReturnType<typeof getEnv>,
-  systemPrompt: string = SYSTEM_PROMPT
+  systemPrompt: string = buildBasePrompt()
 ): Promise<string> {
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -495,7 +502,7 @@ async function callOpenAI(
   messages: { role: string; content: string }[],
   apiKey: string,
   env: ReturnType<typeof getEnv>,
-  systemPrompt: string = SYSTEM_PROMPT
+  systemPrompt: string = buildBasePrompt()
 ): Promise<string> {
   const allMessages = [
     { role: 'system', content: systemPrompt },
