@@ -22,11 +22,15 @@ import { toast } from 'sonner';
 import { fadeInUp, staggerContainer, staggerItem } from '@/lib/animations';
 
 const DESTINATIONS = [
+  { name: '도쿄', nameJa: '東京', emoji: '🗼', desc: '전통과 첨단이 공존하는 대도시' },
+  { name: '오사카', nameJa: '大阪', emoji: '🐙', desc: '먹거리 천국, 쿠이다오레의 도시' },
+  { name: '교토', nameJa: '京都', emoji: '⛩️', desc: '천년 고도의 사찰과 마차' },
+  { name: '후쿠오카', nameJa: '福岡', emoji: '🍜', desc: '돈코츠 라멘과 야타이의 도시' },
+  { name: '삿포로', nameJa: '札幌', emoji: '❄️', desc: '라멘과 눈축제의 도시' },
   { name: '가나자와', nameJa: '金沢', emoji: '🏯', desc: '전통과 현대의 우아한 조화' },
-  { name: '삿포로', nameJa: '札幌', emoji: '🍜', desc: '라멘과 눈축제의 도시' },
   { name: '고베', nameJa: '神戸', emoji: '🥩', desc: '와규와 1000만 달러 야경' },
   { name: '가고시마', nameJa: '鹿児島', emoji: '🌋', desc: '화산과 흑돼지의 남국' },
-  { name: '히로시마', nameJa: '広島', emoji: '⛩️', desc: '평화와 미야지마의 감동' },
+  { name: '히로시마', nameJa: '広島', emoji: '☮️', desc: '평화와 미야지마의 감동' },
 ];
 
 export default function LandingPage() {
@@ -117,7 +121,6 @@ export default function LandingPage() {
                   </>
                 )}
               </Button>
-              <p className="text-xs text-gray-400 mt-4">로그인 없이 바로 시작</p>
             </motion.div>
           </motion.div>
         </div>
@@ -187,7 +190,7 @@ export default function LandingPage() {
 
       {/* Destination showcase */}
       <section className="py-20 bg-white border-y border-gray-100">
-        <div className="max-w-4xl mx-auto px-4">
+        <div className="max-w-5xl mx-auto px-4">
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -197,10 +200,10 @@ export default function LandingPage() {
           >
             <motion.p variants={fadeInUp} className="text-sm font-semibold text-violet-600 mb-2">DESTINATIONS</motion.p>
             <motion.h2 variants={fadeInUp} className="text-3xl font-bold text-gray-900 tracking-tight">
-              일본 소도시 여행 전문
+              일본 여행 전문
             </motion.h2>
             <motion.p variants={fadeInUp} className="text-gray-500 mt-3 max-w-md mx-auto">
-              관광객이 몰리지 않는 매력적인 일본 소도시들을 AI와 함께 기획해보세요.
+              대도시부터 매력적인 소도시까지, AI와 함께 나만의 일본 여행을 기획해보세요.
             </motion.p>
           </motion.div>
 
@@ -209,7 +212,7 @@ export default function LandingPage() {
             whileInView="visible"
             viewport={{ once: true, margin: "-50px" }}
             variants={staggerContainer}
-            className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4"
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
           >
             {DESTINATIONS.map((dest) => (
               <motion.button
