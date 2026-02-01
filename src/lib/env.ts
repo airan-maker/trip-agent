@@ -12,6 +12,9 @@ const envSchema = z.object({
   TURSO_DATABASE_URL: z.string().url(),
   TURSO_AUTH_TOKEN: z.string().min(1),
 
+  // Google Places API (optional)
+  GOOGLE_PLACES_API_KEY: z.string().optional(),
+
   // App Configuration
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(30),

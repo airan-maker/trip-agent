@@ -276,6 +276,15 @@ export async function reorderPlaces(tripId: string, dayIndex: number, placeIds: 
   await c.batch(statements, 'write');
 }
 
+// Update place image URL (for Google Places caching)
+export async function updatePlaceImageUrl(placeId: string, imageUrl: string): Promise<void> {
+  const c = await ensureInitialized();
+  await c.execute({
+    sql: 'UPDATE places SET imageUrl = ? WHERE id = ?',
+    args: [imageUrl, placeId],
+  });
+}
+
 // Health check
 export async function healthCheck(): Promise<boolean> {
   try {

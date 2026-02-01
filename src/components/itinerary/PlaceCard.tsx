@@ -62,7 +62,7 @@ interface PlaceCardProps {
 export default function PlaceCard({ place, showTimeSlot = false }: PlaceCardProps) {
   const config = categoryConfig[place.category] || { icon: <MapPin className="w-4 h-4" />, bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-100' };
   const slot = timeSlotLabels[place.timeSlot];
-  const { imageUrl } = usePlaceImage(place.name, place.nameLocal);
+  const { imageUrl } = usePlaceImage(place.name, place.nameLocal, place.id, place.imageUrl);
 
   return (
     <motion.div
