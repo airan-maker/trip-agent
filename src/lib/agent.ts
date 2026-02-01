@@ -65,7 +65,7 @@ When you have enough information and the user wants to see the plan, respond wit
           "name": "장소명",
           "nameLocal": "현지어 이름 (optional)",
           "category": "관광지|맛집|카페|쇼핑|체험|숙소|이동",
-          "description": "한 줄 설명",
+          "description": "처음 방문하는 사람을 위한 상세 설명 (3~5문장). 이 장소가 어떤 곳인지, 대표 메뉴/볼거리, 가격대, 이용 방법(주문 방식, 테이크아웃 여부 등), 분위기, 알아두면 좋은 팁 등을 포함. 체인점이면 간단히 설명하고, 독립 매장이면 특색을 살려서 작성.",
           "address": "주소",
           "latitude": 35.6762,
           "longitude": 139.6503,
@@ -82,6 +82,16 @@ When you have enough information and the user wants to see the plan, respond wit
 Include 4-6 places per day across morning/lunch/afternoon/evening slots.
 Always include meals (lunch, dinner at minimum).
 Add realistic coordinates if you know them.
+
+## Description Writing Guidelines
+Each place's description should be written for a first-time visitor (3~5 sentences, 150~300자).
+Include as many of these as relevant:
+- What kind of place it is and what makes it special
+- Signature menu items / main attractions with approximate prices
+- How to order or use the place (e.g. ticket machine, counter ordering, reservation needed)
+- Atmosphere and vibe (cozy, lively, scenic view, etc.)
+- Practical tips (best time to visit, what to watch out for, nearby landmarks)
+Do NOT write generic one-liners. Write as if explaining to a friend who has never been there.
 
 ## When modifying the itinerary
 If the user wants changes after seeing the itinerary:
@@ -125,7 +135,7 @@ const placePayloadSchema = z.object({
   name: z.string().min(1).max(200),
   nameLocal: z.string().max(200).optional(),
   category: z.string().max(50).default(''),
-  description: z.string().max(500).default(''),
+  description: z.string().max(1000).default(''),
   address: z.string().max(500).optional(),
   latitude: z.number().min(-90).max(90).optional(),
   longitude: z.number().min(-180).max(180).optional(),
@@ -323,7 +333,7 @@ async function streamAnthropic(
     },
     body: JSON.stringify({
       model: env.ANTHROPIC_MODEL,
-      max_tokens: 4096,
+      max_tokens: 8192,
       stream: true,
       system: systemPrompt,
       messages: messages.map((m) => ({
@@ -396,7 +406,7 @@ async function streamOpenAI(
     body: JSON.stringify({
       model: env.OPENAI_MODEL,
       messages: allMessages,
-      max_tokens: 4096,
+      max_tokens: 8192,
       stream: true,
     }),
   });
@@ -486,7 +496,7 @@ async function callAnthropic(
     },
     body: JSON.stringify({
       model: env.ANTHROPIC_MODEL,
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: systemPrompt,
       messages: messages.map((m) => ({
         role: m.role === 'system' ? 'user' : m.role,
@@ -526,7 +536,7 @@ async function callOpenAI(
     body: JSON.stringify({
       model: env.OPENAI_MODEL,
       messages: allMessages,
-      max_tokens: 4096,
+      max_tokens: 8192,
     }),
   });
 
@@ -586,7 +596,7 @@ async function saveItinerary(tripId: string, data: ItineraryPayload): Promise<vo
         name: p.name.slice(0, 200),
         nameLocal: p.nameLocal?.slice(0, 200) || null,
         category: p.category.slice(0, 50),
-        description: p.description.slice(0, 500),
+        description: p.description.slice(0, 1000),
         address: p.address?.slice(0, 500) || null,
         latitude: p.latitude ?? null,
         longitude: p.longitude ?? null,
