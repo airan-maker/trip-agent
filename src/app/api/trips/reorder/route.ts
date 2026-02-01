@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    reorderPlaces(tripId, dayIndex, placeIds);
+    await reorderPlaces(tripId, dayIndex, placeIds);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     const id = nanoid(12);
-    const trip = db.createTrip(id);
+    const trip = await db.createTrip(id);
     return NextResponse.json(trip, { headers: getRateLimitHeaders(rl) });
   } catch (error) {
     console.error('Create trip error:', error);
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Valid Trip ID required' }, { status: 400 });
     }
 
-    const itinerary = db.getItinerary(parsed.data);
+    const itinerary = await db.getItinerary(parsed.data);
     if (!itinerary) {
       return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
     }

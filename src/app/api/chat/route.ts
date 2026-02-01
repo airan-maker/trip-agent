@@ -39,13 +39,13 @@ export async function POST(request: NextRequest) {
     const { tripId, message } = parsed.data;
 
     // Verify trip exists
-    const trip = db.getTrip(tripId);
+    const trip = await db.getTrip(tripId);
     if (!trip) {
       return NextResponse.json({ error: 'Trip not found' }, { status: 404 });
     }
 
     // Check message count limit
-    const msgCount = db.getMessageCount(tripId);
+    const msgCount = await db.getMessageCount(tripId);
     if (msgCount >= env.MAX_MESSAGES_PER_TRIP) {
       return NextResponse.json(
         { error: '대화 제한에 도달했어요. 새로운 여행 계획을 시작해주세요.' },
@@ -80,6 +80,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Valid tripId required' }, { status: 400 });
   }
 
-  const messages = db.getMessages(tripId);
+  const messages = await db.getMessages(tripId);
   return NextResponse.json(messages);
 }

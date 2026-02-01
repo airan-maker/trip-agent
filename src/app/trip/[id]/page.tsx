@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: TripPageProps): Promise<Metad
   const { id } = await params;
 
   try {
-    const trip = db.getTrip(id);
+    const trip = await db.getTrip(id);
     if (trip && trip.title) {
       return {
         title: `${trip.title} | TripTalk`,

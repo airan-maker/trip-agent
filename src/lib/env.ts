@@ -8,6 +8,10 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default('gpt-4o'),
 
+  // Turso Database
+  TURSO_DATABASE_URL: z.string().url(),
+  TURSO_AUTH_TOKEN: z.string().min(1),
+
   // App Configuration
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(30),

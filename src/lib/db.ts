@@ -1,9 +1,6 @@
-import Database from 'better-sqlite3';
-import fs from 'fs';
-import path from 'path';
+import { createClient, type Client } from '@libsql/client';
 import { Trip, Message, Place } from '@/types/trip';
-
-const DB_PATH = path.join(process.cwd(), 'data', 'triptalk.db');
+import { getEnv } from './env';
 
 // Whitelist of updatable trip columns to prevent SQL injection
 const UPDATABLE_TRIP_COLUMNS = new Set([
@@ -12,32 +9,27 @@ const UPDATABLE_TRIP_COLUMNS = new Set([
   'preferences', 'status', 'updatedAt',
 ]);
 
-let db: Database.Database | null = null;
+let client: Client | null = null;
 
-function getDb(): Database.Database {
-  if (db) return db;
+function getClient(): Client {
+  if (client) return client;
 
-  try {
-    const dir = path.dirname(DB_PATH);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+  const env = getEnv();
+  client = createClient({
+    url: env.TURSO_DATABASE_URL,
+    authToken: env.TURSO_AUTH_TOKEN,
+  });
 
-    db = new Database(DB_PATH);
-    db.pragma('journal_mode = WAL');
-    db.pragma('foreign_keys = ON');
-    db.pragma('busy_timeout = 5000');
-    initializeDb(db);
-
-    return db;
-  } catch (err) {
-    console.error('Failed to initialize database:', err);
-    throw new Error('Database initialization failed');
-  }
+  return client;
 }
 
-function initializeDb(database: Database.Database) {
-  database.exec(`
+let initialized = false;
+
+async function ensureInitialized(): Promise<Client> {
+  const c = getClient();
+  if (initialized) return c;
+
+  await c.executeMultiple(`
     CREATE TABLE IF NOT EXISTS trips (
       id TEXT PRIMARY KEY,
       title TEXT NOT NULL DEFAULT '',
@@ -90,32 +82,14 @@ function initializeDb(database: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_places_tripId ON places(tripId);
     CREATE INDEX IF NOT EXISTS idx_places_day ON places(tripId, dayIndex, orderIndex);
   `);
-}
 
-// Graceful shutdown
-export function closeDb(): void {
-  if (db) {
-    try {
-      db.close();
-    } catch (err) {
-      console.error('Error closing database:', err);
-    }
-    db = null;
-  }
-}
-
-// Register shutdown handlers
-if (typeof process !== 'undefined') {
-  const shutdown = () => {
-    closeDb();
-    process.exit(0);
-  };
-  process.on('SIGTERM', shutdown);
-  process.on('SIGINT', shutdown);
+  initialized = true;
+  return c;
 }
 
 // Trip operations
-export function createTrip(id: string): Trip {
+export async function createTrip(id: string): Promise<Trip> {
+  const c = await ensureInitialized();
   const now = new Date().toISOString();
   const trip: Trip = {
     id,
@@ -133,23 +107,27 @@ export function createTrip(id: string): Trip {
     updatedAt: now,
   };
 
-  getDb()
-    .prepare(
-      `INSERT INTO trips (id, title, destination, status, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    )
-    .run(trip.id, trip.title, trip.destination, trip.status, trip.createdAt, trip.updatedAt);
+  await c.execute({
+    sql: `INSERT INTO trips (id, title, destination, status, createdAt, updatedAt)
+          VALUES (?, ?, ?, ?, ?, ?)`,
+    args: [trip.id, trip.title, trip.destination, trip.status, trip.createdAt, trip.updatedAt],
+  });
 
   return trip;
 }
 
-export function getTrip(id: string): Trip | null {
-  const row = getDb().prepare('SELECT * FROM trips WHERE id = ?').get(id);
-  return (row as Trip) ?? null;
+export async function getTrip(id: string): Promise<Trip | null> {
+  const c = await ensureInitialized();
+  const result = await c.execute({
+    sql: 'SELECT * FROM trips WHERE id = ?',
+    args: [id],
+  });
+  if (result.rows.length === 0) return null;
+  return result.rows[0] as unknown as Trip;
 }
 
-export function updateTrip(id: string, updates: Partial<Trip>): Trip | null {
-  const existing = getTrip(id);
+export async function updateTrip(id: string, updates: Partial<Trip>): Promise<Trip | null> {
+  const existing = await getTrip(id);
   if (!existing) return null;
 
   const fields: string[] = [];
@@ -171,78 +149,91 @@ export function updateTrip(id: string, updates: Partial<Trip>): Trip | null {
 
   values.push(id);
 
-  getDb()
-    .prepare(`UPDATE trips SET ${fields.join(', ')} WHERE id = ?`)
-    .run(...values);
+  const c = await ensureInitialized();
+  await c.execute({
+    sql: `UPDATE trips SET ${fields.join(', ')} WHERE id = ?`,
+    args: values as Array<string | number | null>,
+  });
 
   return getTrip(id);
 }
 
 // Message operations
-export function addMessage(msg: Message): void {
-  getDb()
-    .prepare(
-      `INSERT INTO messages (id, tripId, role, content, createdAt)
-       VALUES (?, ?, ?, ?, ?)`
-    )
-    .run(msg.id, msg.tripId, msg.role, msg.content, msg.createdAt);
+export async function addMessage(msg: Message): Promise<void> {
+  const c = await ensureInitialized();
+  await c.execute({
+    sql: `INSERT INTO messages (id, tripId, role, content, createdAt)
+          VALUES (?, ?, ?, ?, ?)`,
+    args: [msg.id, msg.tripId, msg.role, msg.content, msg.createdAt],
+  });
 }
 
-export function getMessages(tripId: string, limit?: number): Message[] {
+export async function getMessages(tripId: string, limit?: number): Promise<Message[]> {
+  const c = await ensureInitialized();
   if (limit) {
-    return getDb()
-      .prepare('SELECT * FROM messages WHERE tripId = ? ORDER BY createdAt ASC LIMIT ?')
-      .all(tripId, limit) as Message[];
+    const result = await c.execute({
+      sql: 'SELECT * FROM messages WHERE tripId = ? ORDER BY createdAt ASC LIMIT ?',
+      args: [tripId, limit],
+    });
+    return result.rows as unknown as Message[];
   }
-  return getDb()
-    .prepare('SELECT * FROM messages WHERE tripId = ? ORDER BY createdAt ASC')
-    .all(tripId) as Message[];
+  const result = await c.execute({
+    sql: 'SELECT * FROM messages WHERE tripId = ? ORDER BY createdAt ASC',
+    args: [tripId],
+  });
+  return result.rows as unknown as Message[];
 }
 
-export function getMessageCount(tripId: string): number {
-  const row = getDb()
-    .prepare('SELECT COUNT(*) as count FROM messages WHERE tripId = ?')
-    .get(tripId) as { count: number } | undefined;
+export async function getMessageCount(tripId: string): Promise<number> {
+  const c = await ensureInitialized();
+  const result = await c.execute({
+    sql: 'SELECT COUNT(*) as count FROM messages WHERE tripId = ?',
+    args: [tripId],
+  });
+  const row = result.rows[0] as unknown as { count: number } | undefined;
   return row?.count ?? 0;
 }
 
 // Place operations
-export function setPlaces(tripId: string, places: Place[]): void {
-  const database = getDb();
-  const deleteStmt = database.prepare('DELETE FROM places WHERE tripId = ?');
-  const insertStmt = database.prepare(
-    `INSERT INTO places (id, tripId, dayIndex, timeSlot, orderIndex, name, nameLocal, category, description, address, latitude, longitude, rating, openingHours, duration, cost, imageUrl, memo)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-  );
+export async function setPlaces(tripId: string, places: Place[]): Promise<void> {
+  const c = await ensureInitialized();
 
-  const transaction = database.transaction(() => {
-    deleteStmt.run(tripId);
-    for (const p of places) {
-      insertStmt.run(
+  const statements = [
+    {
+      sql: 'DELETE FROM places WHERE tripId = ?',
+      args: [tripId] as Array<string | number | null>,
+    },
+    ...places.map((p) => ({
+      sql: `INSERT INTO places (id, tripId, dayIndex, timeSlot, orderIndex, name, nameLocal, category, description, address, latitude, longitude, rating, openingHours, duration, cost, imageUrl, memo)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
         p.id, p.tripId, p.dayIndex, p.timeSlot, p.orderIndex,
         p.name, p.nameLocal, p.category, p.description, p.address,
         p.latitude, p.longitude,
         p.rating != null ? Math.min(5, Math.max(0, p.rating)) : null,
-        p.openingHours, p.duration, p.cost, p.imageUrl, p.memo
-      );
-    }
-  });
+        p.openingHours, p.duration, p.cost, p.imageUrl, p.memo,
+      ] as Array<string | number | null>,
+    })),
+  ];
 
-  transaction();
+  await c.batch(statements, 'write');
 }
 
-export function getPlaces(tripId: string): Place[] {
-  return getDb()
-    .prepare('SELECT * FROM places WHERE tripId = ? ORDER BY dayIndex, orderIndex')
-    .all(tripId) as Place[];
+export async function getPlaces(tripId: string): Promise<Place[]> {
+  const c = await ensureInitialized();
+  const result = await c.execute({
+    sql: 'SELECT * FROM places WHERE tripId = ? ORDER BY dayIndex, orderIndex',
+    args: [tripId],
+  });
+  return result.rows as unknown as Place[];
 }
 
 // Get full itinerary
-export function getItinerary(tripId: string) {
-  const trip = getTrip(tripId);
+export async function getItinerary(tripId: string) {
+  const trip = await getTrip(tripId);
   if (!trip) return null;
 
-  const places = getPlaces(tripId);
+  const places = await getPlaces(tripId);
   const dayMap = new Map<number, Place[]>();
 
   for (const place of places) {
@@ -274,25 +265,23 @@ export function getItinerary(tripId: string) {
 }
 
 // Reorder places within a day
-export function reorderPlaces(tripId: string, dayIndex: number, placeIds: string[]): void {
-  const database = getDb();
-  const updateStmt = database.prepare(
-    'UPDATE places SET orderIndex = ? WHERE id = ? AND tripId = ? AND dayIndex = ?'
-  );
+export async function reorderPlaces(tripId: string, dayIndex: number, placeIds: string[]): Promise<void> {
+  const c = await ensureInitialized();
 
-  const transaction = database.transaction(() => {
-    for (let i = 0; i < placeIds.length; i++) {
-      updateStmt.run(i, placeIds[i], tripId, dayIndex);
-    }
-  });
+  const statements = placeIds.map((placeId, i) => ({
+    sql: 'UPDATE places SET orderIndex = ? WHERE id = ? AND tripId = ? AND dayIndex = ?',
+    args: [i, placeId, tripId, dayIndex] as Array<string | number | null>,
+  }));
 
-  transaction();
+  await c.batch(statements, 'write');
 }
 
 // Health check
-export function healthCheck(): boolean {
+export async function healthCheck(): Promise<boolean> {
   try {
-    const row = getDb().prepare('SELECT 1 as ok').get() as { ok: number } | undefined;
+    const c = await ensureInitialized();
+    const result = await c.execute('SELECT 1 as ok');
+    const row = result.rows[0] as unknown as { ok: number } | undefined;
     return row?.ok === 1;
   } catch {
     return false;

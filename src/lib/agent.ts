@@ -161,7 +161,7 @@ export async function processChat(
     : env.ANTHROPIC_API_KEY!;
 
   // Get conversation history (limited)
-  const messages = db.getMessages(tripId);
+  const messages = await db.getMessages(tripId);
   const recentMessages = messages.slice(-MAX_CONTEXT_MESSAGES);
 
   // Build messages for API (only user/assistant, skip system)
@@ -175,7 +175,7 @@ export async function processChat(
   apiMessages.push({ role: 'user', content: userMessage });
 
   // Save user message
-  db.addMessage({
+  await db.addMessage({
     id: nanoid(),
     tripId,
     role: 'user',
@@ -190,7 +190,7 @@ export async function processChat(
   const response = await callLLM(apiMessages, apiKey, env, systemPrompt);
 
   // Save assistant message (save the full response including JSON for history)
-  db.addMessage({
+  await db.addMessage({
     id: nanoid(),
     tripId,
     role: 'assistant',
@@ -200,7 +200,7 @@ export async function processChat(
 
   // If itinerary data was generated, save it
   if (response.itineraryData) {
-    saveItinerary(tripId, response.itineraryData);
+    await saveItinerary(tripId, response.itineraryData);
   }
 
   return response;
@@ -220,7 +220,7 @@ export function createStreamingResponse(
           ? env.OPENAI_API_KEY!
           : env.ANTHROPIC_API_KEY!;
 
-        const messages = db.getMessages(tripId);
+        const messages = await db.getMessages(tripId);
         const recentMessages = messages.slice(-MAX_CONTEXT_MESSAGES);
 
         const apiMessages = recentMessages
@@ -233,7 +233,7 @@ export function createStreamingResponse(
         apiMessages.push({ role: 'user', content: userMessage });
 
         // Save user message
-        db.addMessage({
+        await db.addMessage({
           id: nanoid(),
           tripId,
           role: 'user',
@@ -261,7 +261,7 @@ export function createStreamingResponse(
           ? fullText.replace(/```json[\s\S]*?```/g, '').trim() || '일정을 만들었어요! 아래에서 확인해보세요 ✈️'
           : fullText;
 
-        db.addMessage({
+        await db.addMessage({
           id: nanoid(),
           tripId,
           role: 'assistant',
@@ -270,7 +270,7 @@ export function createStreamingResponse(
         });
 
         if (itineraryData) {
-          saveItinerary(tripId, itineraryData);
+          await saveItinerary(tripId, itineraryData);
           // Send itinerary ready signal
           const event = `data: ${JSON.stringify({ type: 'itinerary_ready' })}\n\n`;
           controller.enqueue(encoder.encode(event));
@@ -543,8 +543,8 @@ function extractItineraryJson(text: string): ItineraryPayload | null {
   }
 }
 
-function saveItinerary(tripId: string, data: ItineraryPayload): void {
-  db.updateTrip(tripId, {
+async function saveItinerary(tripId: string, data: ItineraryPayload): Promise<void> {
+  await db.updateTrip(tripId, {
     title: data.trip.title || '',
     destination: data.trip.destination || '',
     startDate: data.trip.startDate || null,
@@ -585,5 +585,5 @@ function saveItinerary(tripId: string, data: ItineraryPayload): void {
     }
   }
 
-  db.setPlaces(tripId, places);
+  await db.setPlaces(tripId, places);
 }
