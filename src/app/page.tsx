@@ -16,7 +16,6 @@ import {
   Clock,
   ChevronRight,
 } from 'lucide-react';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -324,12 +323,7 @@ export default function LandingPage() {
             </div>
             <span className="text-sm font-semibold text-gray-400">TripTalk</span>
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/privacy" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
-              개인정보처리방침
-            </Link>
-            <p className="text-xs text-gray-400">대화하면 완성되는 여행 일정</p>
-          </div>
+          <p className="text-xs text-gray-400">대화하면 완성되는 여행 일정</p>
         </div>
       </footer>
     </div>
