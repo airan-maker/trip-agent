@@ -20,6 +20,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
+import { usePlaceImage } from '@/hooks/usePlaceImage';
 
 const categoryConfig: Record<string, { icon: React.ReactNode; bg: string; text: string; border: string }> = {
   '관광지': { icon: <Camera className="w-4 h-4" />, bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100' },
@@ -61,18 +62,35 @@ interface PlaceCardProps {
 export default function PlaceCard({ place, showTimeSlot = false }: PlaceCardProps) {
   const config = categoryConfig[place.category] || { icon: <MapPin className="w-4 h-4" />, bg: 'bg-gray-50', text: 'text-gray-500', border: 'border-gray-100' };
   const slot = timeSlotLabels[place.timeSlot];
+  const { imageUrl } = usePlaceImage(place.name, place.nameLocal);
 
   return (
     <motion.div
       whileHover={{ y: -2, boxShadow: '0 8px 25px -5px rgba(0, 0, 0, 0.08)' }}
       transition={{ duration: 0.2 }}
     >
-      <Card className="p-4">
-        <CardContent className="p-0">
-          <div className="flex items-start gap-3">
-            <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${config.bg} ${config.text} flex items-center justify-center border ${config.border}`}>
+      <Card className="overflow-hidden">
+        {imageUrl && (
+          <div className="relative w-full h-32 overflow-hidden">
+            <img
+              src={imageUrl}
+              alt={place.name}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+            <div className={`absolute top-2 left-2 w-7 h-7 rounded-lg ${config.bg} ${config.text} flex items-center justify-center border ${config.border} shadow-sm`}>
               {config.icon}
             </div>
+          </div>
+        )}
+        <CardContent className={imageUrl ? 'p-3' : 'p-4'}>
+          <div className={imageUrl ? '' : 'flex items-start gap-3'}>
+            {!imageUrl && (
+              <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${config.bg} ${config.text} flex items-center justify-center border ${config.border}`}>
+                {config.icon}
+              </div>
+            )}
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap mb-1">
