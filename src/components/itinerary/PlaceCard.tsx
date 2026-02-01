@@ -14,6 +14,8 @@ import {
   Bus,
   TreePine,
   Landmark,
+  ExternalLink,
+  Search,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +39,19 @@ const timeSlotLabels: Record<string, { label: string; color: string }> = {
   afternoon: { label: '오후', color: 'text-blue-600 bg-blue-50' },
   evening: { label: '저녁', color: 'text-violet-600 bg-violet-50' },
 };
+
+function getGoogleMapsUrl(place: Place): string {
+  if (place.latitude != null && place.longitude != null) {
+    const query = encodeURIComponent(place.nameLocal || place.name);
+    return `https://www.google.com/maps/search/?api=1&query=${query}&query_place_id=&center=${place.latitude},${place.longitude}`;
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.nameLocal || place.name)}`;
+}
+
+function getSearchUrl(place: Place): string {
+  const query = encodeURIComponent(`${place.nameLocal || place.name} ${place.name !== (place.nameLocal || '') ? place.name : ''} 후기 리뷰`.trim());
+  return `https://www.google.com/search?q=${query}`;
+}
 
 interface PlaceCardProps {
   place: Place;
@@ -76,7 +91,7 @@ export default function PlaceCard({ place, showTimeSlot = false }: PlaceCardProp
                 {place.description}
               </p>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 {place.rating != null && place.rating > 0 && (
                   <Badge variant="amber">
                     <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
@@ -97,7 +112,7 @@ export default function PlaceCard({ place, showTimeSlot = false }: PlaceCardProp
               </div>
 
               {(place.address || place.openingHours) && (
-                <div className="mt-2 space-y-0.5">
+                <div className="space-y-0.5 mb-2">
                   {place.address && (
                     <div className="flex items-center gap-1.5 text-[0.7rem] text-gray-400">
                       <MapPin className="w-3 h-3 flex-shrink-0" />
@@ -112,6 +127,30 @@ export default function PlaceCard({ place, showTimeSlot = false }: PlaceCardProp
                   )}
                 </div>
               )}
+
+              {/* Action links */}
+              <div className="flex flex-wrap gap-2 pt-1 border-t border-gray-50">
+                <a
+                  href={getGoogleMapsUrl(place)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[0.7rem] text-blue-500 hover:text-blue-700 transition-colors font-medium"
+                >
+                  <MapPin className="w-3 h-3" />
+                  구글 지도에서 보기
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+                <a
+                  href={getSearchUrl(place)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[0.7rem] text-emerald-500 hover:text-emerald-700 transition-colors font-medium"
+                >
+                  <Search className="w-3 h-3" />
+                  블로그/리뷰 보기
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+              </div>
             </div>
           </div>
         </CardContent>

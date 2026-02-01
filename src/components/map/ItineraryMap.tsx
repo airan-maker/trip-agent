@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { ItineraryDay, Place } from '@/types/trip';
 import 'leaflet/dist/leaflet.css';
@@ -26,6 +26,14 @@ function createDayIcon(dayIndex: number, orderIndex: number) {
     iconAnchor: [14, 14],
     popupAnchor: [0, -16],
   });
+}
+
+function getGoogleMapsUrl(place: Place): string {
+  if (place.latitude != null && place.longitude != null) {
+    const query = encodeURIComponent(place.nameLocal || place.name);
+    return `https://www.google.com/maps/search/?api=1&query=${query}&center=${place.latitude},${place.longitude}`;
+  }
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place.nameLocal || place.name)}`;
 }
 
 function FitBounds({ places }: { places: Place[] }) {
@@ -68,6 +76,20 @@ export default function ItineraryMap({ days }: ItineraryMapProps) {
     return [lat, lng];
   }, [validPlaces]);
 
+  // Build route polylines per day
+  const dayRoutes = useMemo(() => {
+    return days.map((day) => {
+      const coords = day.places
+        .filter((p) => p.latitude != null && p.longitude != null)
+        .map((p) => [p.latitude!, p.longitude!] as L.LatLngTuple);
+      return {
+        dayIndex: day.dayIndex,
+        coords,
+        color: DAY_COLORS[(day.dayIndex - 1) % DAY_COLORS.length],
+      };
+    }).filter((r) => r.coords.length >= 2);
+  }, [days]);
+
   if (validPlaces.length === 0) {
     return (
       <div className="h-full flex items-center justify-center text-gray-400 text-sm">
@@ -90,6 +112,21 @@ export default function ItineraryMap({ days }: ItineraryMapProps) {
         />
         <FitBounds places={validPlaces} />
 
+        {/* Route polylines per day */}
+        {dayRoutes.map((route) => (
+          <Polyline
+            key={`route-${route.dayIndex}`}
+            positions={route.coords}
+            pathOptions={{
+              color: route.color,
+              weight: 3,
+              opacity: 0.6,
+              dashArray: '8, 6',
+            }}
+          />
+        ))}
+
+        {/* Markers */}
         {days.map((day) =>
           day.places
             .filter((p) => p.latitude != null && p.longitude != null)
@@ -100,7 +137,7 @@ export default function ItineraryMap({ days }: ItineraryMapProps) {
                 icon={createDayIcon(day.dayIndex, idx)}
               >
                 <Popup>
-                  <div className="min-w-[160px]">
+                  <div className="min-w-[180px]">
                     <p className="font-bold text-sm">{place.name}</p>
                     {place.nameLocal && (
                       <p className="text-xs text-gray-400">{place.nameLocal}</p>
@@ -110,7 +147,17 @@ export default function ItineraryMap({ days }: ItineraryMapProps) {
                     )}
                     <p className="text-[0.65rem] text-violet-600 mt-1 font-medium">
                       Day {day.dayIndex}
+                      {place.duration && ` · ${place.duration}`}
+                      {place.cost && ` · ${place.cost}`}
                     </p>
+                    <a
+                      href={getGoogleMapsUrl(place)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block mt-1.5 text-[0.65rem] text-blue-500 hover:text-blue-700 font-medium"
+                    >
+                      📍 구글 지도에서 보기 →
+                    </a>
                   </div>
                 </Popup>
               </Marker>
