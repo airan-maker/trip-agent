@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { Itinerary } from '@/types/trip';
 import DaySection from './DaySection';
 import SortableDaySection from './SortableDaySection';
@@ -30,6 +31,9 @@ interface ItineraryViewProps {
 }
 
 export default function ItineraryView({ itinerary }: ItineraryViewProps) {
+  const t = useTranslations('itinerary');
+  const tc = useTranslations('common');
+  const locale = useLocale();
   const { trip, days } = itinerary;
   const [viewMode, setViewMode] = useState<string>('list');
   const [editable, setEditable] = useState(false);
@@ -44,7 +48,6 @@ export default function ItineraryView({ itinerary }: ItineraryViewProps) {
   ].filter((item) => item.label);
 
   const handleReorder = async (dayIndex: number, placeIds: string[]) => {
-    // Optimistic update
     setLocalDays((prev) =>
       prev.map((day) => {
         if (day.dayIndex !== dayIndex) return day;
@@ -62,17 +65,15 @@ export default function ItineraryView({ itinerary }: ItineraryViewProps) {
         body: JSON.stringify({ tripId: trip.id, dayIndex, placeIds }),
       });
       if (!res.ok) throw new Error();
-      toast.success('순서가 변경되었어요');
+      toast.success(t('orderChanged'));
     } catch {
-      toast.error('순서 변경에 실패했어요');
-      // Revert
+      toast.error(t('orderChangeFailed'));
       setLocalDays(days);
     }
   };
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
-      {/* Hero Header */}
       <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PHBhdGggZD0iTTM2IDM0djJoLTJ2LTJoMnptMC00aDJ2Mmgt MnYtMnptLTQgMHYyaC0ydi0yaDJ6bTIgMGgydjJoLTJ2LTJ6bS00IDRoMnYyaC0ydi0yem0wLTRoMnYyaC0ydi0yem0tNCA0aDJ2Mmgt MnYtMnptMC00aDJ2Mmgt MnYtMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-50" />
         <div className="absolute top-0 right-0 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl" />
@@ -80,11 +81,11 @@ export default function ItineraryView({ itinerary }: ItineraryViewProps) {
         <div className="relative max-w-2xl mx-auto px-4 pt-6 pb-10">
           <div className="flex items-center justify-between mb-8">
             <Link
-              href={`/chat/${trip.id}`}
+              href={`/${locale}/chat/${trip.id}`}
               className="flex items-center gap-1.5 text-white/60 hover:text-white text-sm transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
-              대화로 돌아가기
+              {t('backToChat')}
             </Link>
             <ShareButton tripId={trip.id} />
           </div>
@@ -96,17 +97,13 @@ export default function ItineraryView({ itinerary }: ItineraryViewProps) {
             </div>
           )}
           <h1 className="text-3xl font-bold mb-5 tracking-tight leading-tight">
-            {trip.title || `${trip.destination} 여행`}
+            {trip.title || `${trip.destination} ${tc('trip')}`}
           </h1>
 
           {infoItems.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {infoItems.map((item, i) => (
-                <Badge
-                  key={i}
-                  variant="outline"
-                  className="bg-white/10 backdrop-blur-sm text-white/80 border-white/5"
-                >
+                <Badge key={i} variant="outline" className="bg-white/10 backdrop-blur-sm text-white/80 border-white/5">
                   {item.icon}
                   {item.label}
                 </Badge>
@@ -116,7 +113,6 @@ export default function ItineraryView({ itinerary }: ItineraryViewProps) {
         </div>
       </div>
 
-      {/* View mode tabs + Day tabs */}
       {localDays.length > 0 && (
         <div className="sticky top-0 z-20 glass border-b border-gray-100/50 shadow-sm">
           <div className="max-w-2xl mx-auto px-4">
@@ -140,13 +136,13 @@ export default function ItineraryView({ itinerary }: ItineraryViewProps) {
                     onClick={() => setEditable(!editable)}
                   >
                     {editable ? <Check className="w-3.5 h-3.5" /> : <Pencil className="w-3.5 h-3.5" />}
-                    {editable ? '완료' : '편집'}
+                    {editable ? tc('done') : tc('edit')}
                   </Button>
                 )}
                 <Tabs value={viewMode} onValueChange={setViewMode}>
                   <TabsList>
-                    <TabsTrigger value="list">목록</TabsTrigger>
-                    <TabsTrigger value="map">지도</TabsTrigger>
+                    <TabsTrigger value="list">{tc('list')}</TabsTrigger>
+                    <TabsTrigger value="map">{tc('map')}</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
@@ -155,17 +151,13 @@ export default function ItineraryView({ itinerary }: ItineraryViewProps) {
         </div>
       )}
 
-      {/* Content */}
       <div className="max-w-2xl mx-auto px-4 py-8">
         {viewMode === 'list' ? (
           <>
             {localDays.map((day) => (
               <div key={day.dayIndex} id={`day-${day.dayIndex}`}>
                 {editable ? (
-                  <SortableDaySection
-                    day={day}
-                    onReorder={(placeIds) => handleReorder(day.dayIndex, placeIds)}
-                  />
+                  <SortableDaySection day={day} onReorder={(placeIds) => handleReorder(day.dayIndex, placeIds)} />
                 ) : (
                   <DaySection day={day} />
                 )}
@@ -183,21 +175,19 @@ export default function ItineraryView({ itinerary }: ItineraryViewProps) {
             <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
               <Plane className="w-7 h-7 text-gray-300" />
             </div>
-            <p className="text-gray-400 mb-3">아직 일정이 생성되지 않았어요.</p>
+            <p className="text-gray-400 mb-3">{t('noItinerary')}</p>
             <Link
-              href={`/chat/${trip.id}`}
+              href={`/${locale}/chat/${trip.id}`}
               className="text-sm text-violet-500 hover:text-violet-600 font-medium transition-colors"
             >
-              대화를 계속해서 일정을 만들어보세요
+              {t('continueChat')}
             </Link>
           </div>
         )}
       </div>
 
-      {/* Affiliate Links */}
       {trip.destination && <AffiliateLinks destination={trip.destination} />}
 
-      {/* Footer */}
       <div className="border-t border-gray-100 bg-white py-8">
         <div className="max-w-2xl mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-3">

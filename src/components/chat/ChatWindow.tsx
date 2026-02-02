@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLocale, useTranslations } from 'next-intl';
 import { Message } from '@/types/trip';
 import ChatMessage from './ChatMessage';
 import ChatInput from './ChatInput';
@@ -14,11 +15,14 @@ import { toast } from 'sonner';
 
 interface ChatWindowProps {
   tripId: string;
+  locale?: string;
   initialMessages?: Message[];
   onItineraryUpdate?: () => void;
 }
 
-export default function ChatWindow({ tripId, initialMessages = [], onItineraryUpdate }: ChatWindowProps) {
+export default function ChatWindow({ tripId, locale: localeProp, initialMessages = [], onItineraryUpdate }: ChatWindowProps) {
+  const t = useTranslations('chat');
+  const currentLocale = localeProp || useLocale();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [isLoading, setIsLoading] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
@@ -42,8 +46,7 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
         id: 'greeting',
         tripId,
         role: 'assistant',
-        content:
-          '안녕하세요! ✈️ TripTalk이에요.\n\n여행 계획을 도와드릴게요. 어디로 여행을 떠나고 싶으세요?',
+        content: t('greeting'),
         createdAt: new Date().toISOString(),
       };
       setMessages([greeting]);
@@ -70,12 +73,12 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tripId, message: content }),
+        body: JSON.stringify({ tripId, message: content, locale: currentLocale }),
         signal: abortController.signal,
       });
 
       if (!res.ok) {
-        let errorMsg = '서버 오류가 발생했어요.';
+        let errorMsg = t('serverError');
         try {
           const error = await res.json();
           errorMsg = error.error || errorMsg;
@@ -108,12 +111,10 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
               const event = JSON.parse(data);
               if (event.type === 'text') {
                 accumulated += event.content;
-                // Strip complete ```json...``` blocks and incomplete ones (open ```json without closing ```)
                 let display = accumulated.replace(/```json[\s\S]*?```/g, '');
                 display = display.replace(/```json[\s\S]*$/g, '');
                 display = display.trim();
 
-                // Extract planning info from incomplete JSON for live preview
                 if (accumulated.includes('```json')) {
                   const jsonPart = accumulated.split('```json')[1] || '';
                   const dest = jsonPart.match(/"destination"\s*:\s*"([^"]+)"/)?.[1];
@@ -145,7 +146,7 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
         let finalContent = accumulated.replace(/```json[\s\S]*?```/g, '');
         finalContent = finalContent.replace(/```json[\s\S]*$/g, '').trim();
         if (!finalContent && accumulated.includes('```json')) {
-          finalContent = '일정을 만들었어요! 오른쪽 패널에서 확인해보세요 ✈️';
+          finalContent = t('itineraryCreated');
         }
         if (finalContent) {
           const assistantMsg: Message = {
@@ -175,13 +176,13 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
       }
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
-      const errMessage = error instanceof Error ? error.message : '잠시 후 다시 시도해주세요.';
+      const errMessage = error instanceof Error ? error.message : t('retryLater');
       toast.error(errMessage);
       const errorMsg: Message = {
         id: nanoid(),
         tripId,
         role: 'assistant',
-        content: `죄송해요, 오류가 발생했어요. ${errMessage}`,
+        content: t('errorOccurred', { message: errMessage }),
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, errorMsg]);
@@ -205,16 +206,16 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
             </div>
             <div>
               <h1 className="font-bold text-sm text-gray-900">TripTalk</h1>
-              <p className="text-[0.65rem] text-gray-400">여행 플래너 AI</p>
+              <p className="text-[0.65rem] text-gray-400">{t('plannerAI')}</p>
             </div>
           </div>
           {itineraryReady && (
             <Button
               size="sm"
-              onClick={() => router.push(`/trip/${tripId}`)}
+              onClick={() => router.push(`/${currentLocale}/trip/${tripId}`)}
               className="gap-1.5"
             >
-              일정 보기
+              {t('viewItinerary')}
               <ExternalLink className="w-3.5 h-3.5" />
             </Button>
           )}
@@ -271,7 +272,7 @@ export default function ChatWindow({ tripId, initialMessages = [], onItineraryUp
       <ChatInput
         onSend={sendMessage}
         disabled={isLoading}
-        placeholder="여행지, 일정, 원하는 것을 알려주세요..."
+        placeholder={t('placeholder')}
       />
     </div>
   );

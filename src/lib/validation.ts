@@ -12,6 +12,7 @@ export const chatMessageSchema = z.object({
     .string()
     .min(1, 'Message cannot be empty')
     .max(2000, 'Message too long (max 2000 characters)'),
+  locale: z.enum(['ko', 'en', 'ja', 'zh']).optional(),
 });
 
 export const qrUrlSchema = z

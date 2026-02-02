@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { tripId, message } = parsed.data;
+    const { tripId, message, locale } = parsed.data;
 
     // Verify trip exists
     const trip = await db.getTrip(tripId);
@@ -48,13 +48,13 @@ export async function POST(request: NextRequest) {
     const msgCount = await db.getMessageCount(tripId);
     if (msgCount >= env.MAX_MESSAGES_PER_TRIP) {
       return NextResponse.json(
-        { error: '대화 제한에 도달했어요. 새로운 여행 계획을 시작해주세요.' },
+        { error: 'Message limit reached. Please start a new trip.' },
         { status: 400 }
       );
     }
 
     // Stream the response
-    const stream = createStreamingResponse(tripId, message);
+    const stream = createStreamingResponse(tripId, message, locale);
 
     return new Response(stream, {
       headers: {

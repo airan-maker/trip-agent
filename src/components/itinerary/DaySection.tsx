@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { ItineraryDay } from '@/types/trip';
 import PlaceCard from './PlaceCard';
 import { motion } from 'framer-motion';
@@ -11,14 +12,23 @@ interface DaySectionProps {
 
 const timeSlotOrder = ['morning', 'lunch', 'afternoon', 'evening'];
 
-const timeSlotHeaders: Record<string, { label: string; icon: string }> = {
-  morning: { label: '오전', icon: '🌅' },
-  lunch: { label: '점심', icon: '🍽️' },
-  afternoon: { label: '오후', icon: '☀️' },
-  evening: { label: '저녁', icon: '🌙' },
+const timeSlotIcons: Record<string, string> = {
+  morning: '🌅',
+  lunch: '🍽️',
+  afternoon: '☀️',
+  evening: '🌙',
 };
 
 export default function DaySection({ day }: DaySectionProps) {
+  const t = useTranslations('itinerary');
+
+  const timeSlotLabels: Record<string, string> = {
+    morning: t('morning'),
+    lunch: t('lunch'),
+    afternoon: t('afternoon'),
+    evening: t('evening'),
+  };
+
   const grouped = timeSlotOrder
     .map((slot) => ({
       slot,
@@ -34,7 +44,6 @@ export default function DaySection({ day }: DaySectionProps) {
       variants={staggerContainer}
       className="mb-10"
     >
-      {/* Day header */}
       <div className="sticky top-12 z-10 bg-[#fafafa]/95 backdrop-blur-sm py-3 mb-5">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
@@ -55,14 +64,13 @@ export default function DaySection({ day }: DaySectionProps) {
         </div>
       </div>
 
-      {/* Timeline */}
       <div className="pl-6 ml-6 border-l-2 border-violet-100 space-y-4">
         {grouped.map((group) => (
           <div key={group.slot}>
             <div className="relative mb-3">
               <div className="absolute -left-[1.85rem] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-violet-200 border-[3px] border-white shadow-sm" />
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                {timeSlotHeaders[group.slot]?.icon} {timeSlotHeaders[group.slot]?.label || group.slot}
+                {timeSlotIcons[group.slot]} {timeSlotLabels[group.slot] || group.slot}
               </span>
             </div>
             <div className="space-y-3">

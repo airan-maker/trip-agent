@@ -3,7 +3,7 @@ import { Place } from '@/types/trip';
 import { getEnv } from './env';
 import * as db from './db';
 import { z } from 'zod';
-import { buildKnowledgeContext } from './knowledge/japan-cities';
+import { buildKnowledgeContext } from './knowledge';
 
 function buildBasePrompt(): string {
   const today = new Date().toISOString().split('T')[0];
@@ -135,10 +135,18 @@ When you have structured knowledge about a destination, USE IT to give precise r
  * Build system prompt with optional knowledge context injected.
  * Scans all recent messages + the current user message for city mentions.
  */
+const LOCALE_INSTRUCTIONS: Record<string, string> = {
+  ko: '', // Default — Korean, no extra instruction needed
+  en: '\n\n## Language Instruction\nRespond in English. Adapt place names for English speakers while keeping the original local names in parentheses.',
+  ja: '\n\n## Language Instruction\n日本語で回答してください。場所名は日本語表記を優先し、現地語名を括弧内に記載してください。',
+  zh: '\n\n## Language Instruction\n请用中文回答。地名请使用中文表记，并在括号内标注当地语言名称。',
+};
+
 function buildSystemPrompt(
   userMessage: string,
   previousMessages: { role: string; content: string }[],
-  existingPlaces?: Place[]
+  existingPlaces?: Place[],
+  locale?: string
 ): string {
   const basePrompt = buildBasePrompt();
   // Check user message and recent messages for city mentions
@@ -146,6 +154,11 @@ function buildSystemPrompt(
   const knowledge = buildKnowledgeContext(allText);
 
   let prompt = basePrompt;
+
+  // Add locale-specific language instruction
+  if (locale && LOCALE_INSTRUCTIONS[locale]) {
+    prompt += LOCALE_INSTRUCTIONS[locale];
+  }
 
   if (knowledge) {
     prompt += `\n\n---\n# 목적지 참고 정보 (Knowledge Base)\n아래 정보를 참고하여 구체적이고 정확한 추천을 해주세요.\n${knowledge}`;
@@ -251,7 +264,8 @@ const MAX_CONTEXT_MESSAGES = 40;
 
 export async function processChat(
   tripId: string,
-  userMessage: string
+  userMessage: string,
+  locale?: string
 ): Promise<AgentResponse> {
   const env = getEnv();
   const apiKey = env.LLM_PROVIDER === 'openai'
@@ -285,7 +299,7 @@ export async function processChat(
   const existingPlaces = await db.getPlaces(tripId);
 
   // Build system prompt with knowledge context and existing itinerary
-  const systemPrompt = buildSystemPrompt(userMessage, apiMessages, existingPlaces);
+  const systemPrompt = buildSystemPrompt(userMessage, apiMessages, existingPlaces, locale);
 
   // Call LLM
   const response = await callLLM(apiMessages, apiKey, env, systemPrompt);
@@ -311,7 +325,8 @@ export async function processChat(
 
 export function createStreamingResponse(
   tripId: string,
-  userMessage: string
+  userMessage: string,
+  locale?: string
 ): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder();
 
@@ -348,7 +363,7 @@ export function createStreamingResponse(
         const existingPlaces = await db.getPlaces(tripId);
 
         // Build system prompt with knowledge context and existing itinerary
-        const systemPrompt = buildSystemPrompt(userMessage, apiMessages, existingPlaces);
+        const systemPrompt = buildSystemPrompt(userMessage, apiMessages, existingPlaces, locale);
 
         // Stream from LLM
         let fullText = '';

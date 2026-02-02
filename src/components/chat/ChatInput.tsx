@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import { ArrowUp } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -14,8 +15,9 @@ interface ChatInputProps {
 export default function ChatInput({
   onSend,
   disabled = false,
-  placeholder = '메시지를 입력하세요...',
+  placeholder,
 }: ChatInputProps) {
+  const t = useTranslations('chat');
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -51,7 +53,7 @@ export default function ChatInput({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
+            placeholder={placeholder || t('placeholder')}
             disabled={disabled}
             rows={1}
             className="pr-12"
@@ -71,7 +73,7 @@ export default function ChatInput({
         </div>
       </div>
       <p className="text-center text-[0.65rem] text-gray-400 mt-2 max-w-3xl mx-auto">
-        Shift+Enter로 줄바꿈
+        {t('shiftEnter')}
       </p>
     </div>
   );

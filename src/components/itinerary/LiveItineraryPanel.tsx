@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import { Itinerary } from '@/types/trip';
 import {
   MapPin,
@@ -24,6 +25,8 @@ interface LiveItineraryPanelProps {
 }
 
 export default function LiveItineraryPanel({ tripId, refreshKey }: LiveItineraryPanelProps) {
+  const t = useTranslations('itinerary');
+  const tc = useTranslations('common');
   const [itinerary, setItinerary] = useState<Itinerary | null>(null);
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState<string>('list');
@@ -56,16 +59,16 @@ export default function LiveItineraryPanel({ tripId, refreshKey }: LiveItinerary
             {loading ? (
               <>
                 <Loader2 className="w-8 h-8 text-violet-400 animate-spin mx-auto mb-3" />
-                <p className="text-sm text-gray-400">일정 불러오는 중...</p>
+                <p className="text-sm text-gray-400">{t('loadingItinerary')}</p>
               </>
             ) : (
               <>
                 <div className="w-14 h-14 rounded-2xl bg-violet-50 flex items-center justify-center mx-auto mb-4">
                   <Sparkles className="w-6 h-6 text-violet-300" />
                 </div>
-                <p className="text-sm font-medium text-gray-500 mb-1">일정 미리보기</p>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  AI와 대화하면 여기에<br />일정이 실시간으로 나타나요
+                <p className="text-sm font-medium text-gray-500 mb-1">{t('preview')}</p>
+                <p className="text-xs text-gray-400 leading-relaxed whitespace-pre-line">
+                  {t('previewDesc')}
                 </p>
               </>
             )}
@@ -88,11 +91,10 @@ export default function LiveItineraryPanel({ tripId, refreshKey }: LiveItinerary
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
       <div className="flex-shrink-0 px-4 py-4 border-b border-gray-100 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-bold text-base text-white truncate">
-            {trip.title || `${trip.destination || ''} 여행`}
+            {trip.title || `${trip.destination || ''} ${tc('trip')}`}
           </h2>
           {loading && <Loader2 className="w-3.5 h-3.5 text-violet-300 animate-spin flex-shrink-0" />}
         </div>
@@ -108,13 +110,13 @@ export default function LiveItineraryPanel({ tripId, refreshKey }: LiveItinerary
           {days.length > 0 && (
             <Badge variant="outline" className="bg-white/10 text-white/80 border-white/10 text-[0.65rem]">
               <Calendar className="w-2.5 h-2.5" />
-              {days.length}일
+              {tc('days', { count: days.length })}
             </Badge>
           )}
           {totalPlaces > 0 && (
             <Badge variant="outline" className="bg-white/10 text-white/80 border-white/10 text-[0.65rem]">
               <MapPin className="w-2.5 h-2.5" />
-              {totalPlaces}곳
+              {tc('places', { count: totalPlaces })}
             </Badge>
           )}
           {infoItems.map((item, i) => (
@@ -126,17 +128,15 @@ export default function LiveItineraryPanel({ tripId, refreshKey }: LiveItinerary
         </div>
       </div>
 
-      {/* View mode tabs */}
       <div className="flex-shrink-0 px-4 py-2 border-b border-gray-100 bg-white">
         <Tabs value={viewMode} onValueChange={setViewMode}>
           <TabsList className="w-full">
-            <TabsTrigger value="list" className="flex-1">목록</TabsTrigger>
-            <TabsTrigger value="map" className="flex-1">지도</TabsTrigger>
+            <TabsTrigger value="list" className="flex-1">{tc('list')}</TabsTrigger>
+            <TabsTrigger value="map" className="flex-1">{tc('map')}</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-hidden relative">
         {viewMode === 'list' ? (
           <div className="absolute inset-0 overflow-y-auto no-scrollbar bg-[#fafafa]">
@@ -153,7 +153,6 @@ export default function LiveItineraryPanel({ tripId, refreshKey }: LiveItinerary
         )}
       </div>
 
-      {/* Bottom actions */}
       <div className="flex-shrink-0 p-3 border-t border-gray-100 bg-gray-50/50">
         <ShareButton tripId={tripId} variant="full" />
       </div>

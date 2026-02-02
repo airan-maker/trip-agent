@@ -3,39 +3,38 @@ import * as db from '@/lib/db';
 import TripClientPage from './TripClientPage';
 
 interface TripPageProps {
-  params: Promise<{ id: string }>;
+  params: Promise<{ id: string; locale: string }>;
 }
 
 export async function generateMetadata({ params }: TripPageProps): Promise<Metadata> {
-  const { id } = await params;
+  const { id, locale } = await params;
 
   try {
     const trip = await db.getTrip(id);
     if (trip && trip.title) {
-      const description = `${trip.destination} 여행 일정 - ${trip.travelers || ''} ${trip.theme || ''}`.trim();
+      const description = `${trip.destination} travel itinerary - ${trip.travelers || ''} ${trip.theme || ''}`.trim();
       return {
         title: `${trip.title} | TripTalk`,
         description,
         keywords: [
           trip.destination,
-          `${trip.destination} 여행`,
-          `${trip.destination} 일정`,
+          `${trip.destination} travel`,
           trip.theme,
-          'AI 여행 플래너',
+          'AI travel planner',
           'TripTalk',
         ].filter(Boolean) as string[],
         openGraph: {
           title: `${trip.title} | TripTalk`,
-          description: `${trip.destination} 여행 일정을 확인해보세요!`,
+          description: `${trip.destination} travel itinerary`,
           type: 'article',
         },
         twitter: {
           card: 'summary_large_image',
           title: `${trip.title} | TripTalk`,
-          description: `${trip.destination} 여행 일정을 확인해보세요!`,
+          description: `${trip.destination} travel itinerary`,
         },
         alternates: {
-          canonical: `/trip/${id}`,
+          canonical: `/${locale}/trip/${id}`,
         },
       };
     }
@@ -44,8 +43,8 @@ export async function generateMetadata({ params }: TripPageProps): Promise<Metad
   }
 
   return {
-    title: '여행 일정 | TripTalk',
-    description: 'TripTalk으로 만든 여행 일정을 확인해보세요!',
+    title: 'Travel Itinerary | TripTalk',
+    description: 'Check out this travel itinerary made with TripTalk!',
   };
 }
 
@@ -57,12 +56,11 @@ async function getTripJsonLd(id: string) {
     const { trip, days } = itinerary;
     const jsonLd: Record<string, unknown>[] = [];
 
-    // TravelAction
     jsonLd.push({
       '@context': 'https://schema.org',
       '@type': 'TravelAction',
-      name: trip.title || '여행 일정',
-      description: `${trip.destination} 여행 일정`,
+      name: trip.title || 'Travel Itinerary',
+      description: `${trip.destination} travel itinerary`,
       toLocation: {
         '@type': 'Place',
         name: trip.destination,
@@ -71,13 +69,12 @@ async function getTripJsonLd(id: string) {
       ...(trip.endDate && { endTime: trip.endDate }),
     });
 
-    // ItemList of places
     const allPlaces = days.flatMap((d) => d.places);
     if (allPlaces.length > 0) {
       jsonLd.push({
         '@context': 'https://schema.org',
         '@type': 'ItemList',
-        name: `${trip.title || trip.destination} 여행 장소`,
+        name: `${trip.title || trip.destination} travel places`,
         numberOfItems: allPlaces.length,
         itemListElement: allPlaces.map((place, idx) => ({
           '@type': 'ListItem',

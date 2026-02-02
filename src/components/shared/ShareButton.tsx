@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { Share2, Link2, Check, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,6 +13,7 @@ interface ShareButtonProps {
 }
 
 export default function ShareButton({ tripId, variant = 'icon' }: ShareButtonProps) {
+  const t = useTranslations('share');
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
 
@@ -23,7 +25,7 @@ export default function ShareButton({ tripId, variant = 'icon' }: ShareButtonPro
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      toast.success('링크가 복사되었어요!');
+      toast.success(t('linkCopied'));
       setTimeout(() => setCopied(false), 2000);
     } catch {
       const input = document.createElement('input');
@@ -33,7 +35,7 @@ export default function ShareButton({ tripId, variant = 'icon' }: ShareButtonPro
       document.execCommand('copy');
       document.body.removeChild(input);
       setCopied(true);
-      toast.success('링크가 복사되었어요!');
+      toast.success(t('linkCopied'));
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -42,7 +44,7 @@ export default function ShareButton({ tripId, variant = 'icon' }: ShareButtonPro
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'TripTalk 여행 일정',
+          title: t('shareTitle'),
           url: shareUrl,
         });
       } catch {
@@ -59,22 +61,21 @@ export default function ShareButton({ tripId, variant = 'icon' }: ShareButtonPro
         <div className="flex gap-2 justify-center">
           <Button variant="violet" onClick={handleShare} className="rounded-full">
             <Share2 className="w-4 h-4" />
-            공유하기
+            {t('share')}
           </Button>
           <Button variant="secondary" onClick={handleCopy} className="rounded-full">
             {copied ? <Check className="w-4 h-4 text-green-500" /> : <Link2 className="w-4 h-4" />}
-            {copied ? '복사됨!' : '링크 복사'}
+            {copied ? t('copied') : t('copyLink')}
           </Button>
           <Button variant="secondary" onClick={() => setShowQR(true)} className="rounded-full">
             <QrCode className="w-4 h-4" />
             QR
           </Button>
         </div>
-
         <Dialog open={showQR} onOpenChange={setShowQR}>
           <DialogContent onClose={() => setShowQR(false)}>
             <DialogHeader>
-              <DialogTitle>QR 코드</DialogTitle>
+              <DialogTitle>{t('qrCode')}</DialogTitle>
             </DialogHeader>
             <div className="flex justify-center py-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -84,9 +85,7 @@ export default function ShareButton({ tripId, variant = 'icon' }: ShareButtonPro
                 className="w-48 h-48"
               />
             </div>
-            <p className="text-xs text-gray-400 text-center">
-              QR 코드를 스캔하세요
-            </p>
+            <p className="text-xs text-gray-400 text-center">{t('scanQR')}</p>
           </DialogContent>
         </Dialog>
       </div>

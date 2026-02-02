@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { MapPin, Calendar, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plane } from 'lucide-react';
@@ -11,6 +12,8 @@ interface PlanningProgressProps {
 }
 
 export default function PlanningProgress({ destination, dates, places }: PlanningProgressProps) {
+  const t = useTranslations('chat');
+
   return (
     <div className="flex gap-3">
       <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm">
@@ -19,7 +22,7 @@ export default function PlanningProgress({ destination, dates, places }: Plannin
       <div className="max-w-[80%] bg-white border border-gray-100 rounded-[20px_20px_20px_6px] px-4 py-3 shadow-sm">
         <div className="flex items-center gap-2 mb-2">
           <Loader2 className="w-3.5 h-3.5 text-violet-500 animate-spin" />
-          <span className="text-xs font-semibold text-violet-600">일정 만드는 중...</span>
+          <span className="text-xs font-semibold text-violet-600">{t('planningProgress')}</span>
         </div>
 
         {(destination || dates) && (
