@@ -21,6 +21,7 @@ import {
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import AffiliateLinks from './AffiliateLinks';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 
@@ -192,6 +193,9 @@ export default function ItineraryView({ itinerary }: ItineraryViewProps) {
           </div>
         )}
       </div>
+
+      {/* Affiliate Links */}
+      {trip.destination && <AffiliateLinks destination={trip.destination} />}
 
       {/* Footer */}
       <div className="border-t border-gray-100 bg-white py-8">

@@ -11,6 +11,8 @@ import {
   ShoppingBag,
   Compass,
   Home,
+  Hotel,
+  Ticket,
   Bus,
   TreePine,
   Landmark,
@@ -21,6 +23,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
 import { usePlaceImage } from '@/hooks/usePlaceImage';
+import { getBookingSearchUrl, getGetYourGuideUrl, getKlookSearchUrl } from '@/lib/affiliate';
 
 const categoryConfig: Record<string, { icon: React.ReactNode; bg: string; text: string; border: string }> = {
   '관광지': { icon: <Camera className="w-4 h-4" />, bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100' },
@@ -168,6 +171,53 @@ export default function PlaceCard({ place, showTimeSlot = false }: PlaceCardProp
                   블로그/리뷰 보기
                   <ExternalLink className="w-2.5 h-2.5" />
                 </a>
+                {place.category === '숙소' && (() => {
+                  const url = getBookingSearchUrl(place.name);
+                  return url ? (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer sponsored"
+                      className="inline-flex items-center gap-1 text-[0.7rem] text-indigo-500 hover:text-indigo-700 transition-colors font-medium"
+                    >
+                      <Hotel className="w-3 h-3" />
+                      Booking.com에서 검색
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  ) : null;
+                })()}
+                {place.category === '체험' && (() => {
+                  const gygLink = getGetYourGuideUrl(place.name);
+                  const klookLink = getKlookSearchUrl(place.name);
+                  return (
+                    <>
+                      {klookLink && (
+                        <a
+                          href={klookLink}
+                          target="_blank"
+                          rel="noopener noreferrer sponsored"
+                          className="inline-flex items-center gap-1 text-[0.7rem] text-orange-500 hover:text-orange-700 transition-colors font-medium"
+                        >
+                          <Ticket className="w-3 h-3" />
+                          Klook에서 검색
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      )}
+                      {gygLink && (
+                        <a
+                          href={gygLink}
+                          target="_blank"
+                          rel="noopener noreferrer sponsored"
+                          className="inline-flex items-center gap-1 text-[0.7rem] text-teal-500 hover:text-teal-700 transition-colors font-medium"
+                        >
+                          <Compass className="w-3 h-3" />
+                          투어 검색
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
