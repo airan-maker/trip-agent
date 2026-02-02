@@ -1,103 +1,6 @@
-/**
- * Japan Small Cities Knowledge Ontology
- *
- * Palantir-style structured ontology for Japanese small city travel.
- * Pre-structured knowledge enables the AI agent to give
- * precise, context-aware recommendations without web search.
- *
- * Entity types:
- *   City → has Areas → has Places
- *   City → has FoodSpecialties
- *   City → has SeasonalEvents
- *   City → connected via TransportLinks
- */
+import { CityProfile } from './types';
 
-// ─── Entity Types ──────────────────────────────────────
-
-export interface CityProfile {
-  id: string;
-  name: string;
-  nameJa: string;
-  prefecture: string;
-  region: string;
-  description: string;
-  character: string; // one-line vibe
-  bestSeasons: Season[];
-  averageStay: string; // e.g. "1~2일"
-  budgetPerDay: { economy: string; mid: string; premium: string };
-  areas: Area[];
-  foods: FoodSpecialty[];
-  events: SeasonalEvent[];
-  transportFromTokyo: TransportOption;
-  transportFromOsaka: TransportOption;
-  neighborCities: NeighborLink[];
-  travelTips: string[];
-  tags: string[];
-}
-
-export interface Area {
-  name: string;
-  nameJa: string;
-  description: string;
-  walkable: boolean;
-  timeNeeded: string;
-  places: PlaceKnowledge[];
-}
-
-export interface PlaceKnowledge {
-  name: string;
-  nameJa: string;
-  category: PlaceCategory;
-  description: string;
-  mustVisit: boolean;
-  hours?: string;
-  closedDay?: string;
-  admission?: string;
-  duration: string;
-  bestTime?: string;
-  latitude: number;
-  longitude: number;
-  rating: number;
-  tips?: string;
-}
-
-export interface FoodSpecialty {
-  name: string;
-  nameJa: string;
-  description: string;
-  priceRange: string;
-  mustTry: boolean;
-  bestSpots: string[];
-  mealType: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'any';
-}
-
-export interface SeasonalEvent {
-  name: string;
-  nameJa: string;
-  period: string;
-  description: string;
-  highlight: string;
-}
-
-export interface TransportOption {
-  method: string;
-  duration: string;
-  cost: string;
-  tips?: string;
-}
-
-export interface NeighborLink {
-  cityId: string;
-  cityName: string;
-  transport: string;
-  duration: string;
-  dayTripViable: boolean;
-}
-
-type Season = 'spring' | 'summer' | 'autumn' | 'winter';
-type PlaceCategory = '관광지' | '맛집' | '카페' | '쇼핑' | '체험' | '숙소' | '이동' | '자연' | '신사/사찰';
-
-// ─── City Data ─────────────────────────────────────────
+// ─── Japan City Data ───────────────────────────────────────
 
 export const JAPAN_CITIES: CityProfile[] = [
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -106,8 +9,8 @@ export const JAPAN_CITIES: CityProfile[] = [
   {
     id: 'kanazawa',
     name: '가나자와',
-    nameJa: '金沢',
-    prefecture: '이시카와현',
+    nameLocal: '金沢',
+    country: '일본',
     region: '호쿠리쿠',
     description: '에도 시대의 풍경이 살아 숨 쉬는 북륙의 교토. 전통 공예, 정원, 해산물의 도시.',
     character: '전통과 현대가 공존하는 우아한 소도시',
@@ -117,14 +20,14 @@ export const JAPAN_CITIES: CityProfile[] = [
     areas: [
       {
         name: '히가시 차야가이',
-        nameJa: '東茶屋街',
+        nameLocal: '東茶屋街',
         description: '에도 시대 게이샤 문화가 남아 있는 전통 찻집 거리. 금박 아이스크림과 전통 카페.',
         walkable: true,
         timeNeeded: '1.5~2시간',
         places: [
           {
             name: '히가시 차야가이',
-            nameJa: 'ひがし茶屋街',
+            nameLocal: 'ひがし茶屋街',
             category: '관광지',
             description: '일본에서 가장 아름다운 게이샤 거리 중 하나. 목조 건물이 늘어선 운치 있는 골목.',
             mustVisit: true,
@@ -137,7 +40,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '하쿠이치 금박 체험',
-            nameJa: '箔一',
+            nameLocal: '箔一',
             category: '체험',
             description: '가나자와 명물 금박 공예 체험. 금박 소프트크림도 유명.',
             mustVisit: true,
@@ -152,14 +55,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '겐로쿠엔 주변',
-        nameJa: '兼六園周辺',
+        nameLocal: '兼六園周辺',
         description: '일본 3대 정원 겐로쿠엔과 가나자와성을 중심으로 한 핵심 관광 에리어.',
         walkable: true,
         timeNeeded: '3~4시간',
         places: [
           {
             name: '겐로쿠엔',
-            nameJa: '兼六園',
+            nameLocal: '兼六園',
             category: '관광지',
             description: '일본 3대 정원. 사계절 다른 아름다움, 특히 겨울 유키즈리(눈매달기)가 장관.',
             mustVisit: true,
@@ -174,7 +77,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '가나자와성 공원',
-            nameJa: '金沢城公園',
+            nameLocal: '金沢城公園',
             category: '관광지',
             description: '마에다 가문의 거성. 이시카와몬 문이 상징적.',
             mustVisit: true,
@@ -187,7 +90,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '21세기 미술관',
-            nameJa: '金沢21世紀美術館',
+            nameLocal: '金沢21世紀美術館',
             category: '관광지',
             description: '레안드로 에를리치의 수영장 작품으로 유명한 현대미술관. SNS 핫스팟.',
             mustVisit: true,
@@ -204,14 +107,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '오미초 시장',
-        nameJa: '近江町市場',
+        nameLocal: '近江町市場',
         description: '가나자와의 부엌. 신선한 해산물과 로컬 식재료의 보고.',
         walkable: true,
         timeNeeded: '1~2시간',
         places: [
           {
             name: '오미초 시장',
-            nameJa: '近江町市場',
+            nameLocal: '近江町市場',
             category: '맛집',
             description: '300년 역사의 시장. 해산물 덮밥, 노도구로, 게 등 신선한 먹거리.',
             mustVisit: true,
@@ -226,14 +129,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '나가마치 무사 저택',
-        nameJa: '長町武家屋敷跡',
+        nameLocal: '長町武家屋敷跡',
         description: '에도 시대 무사들의 주거지 거리. 토담길이 인상적.',
         walkable: true,
         timeNeeded: '1~1.5시간',
         places: [
           {
             name: '나가마치 부케야시키',
-            nameJa: '長町武家屋敷跡',
+            nameLocal: '長町武家屋敷跡',
             category: '관광지',
             description: '보존 상태 좋은 무사 저택 거리. 노무라 가문 저택 내부 관람 가능.',
             mustVisit: false,
@@ -248,17 +151,19 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
     ],
     foods: [
-      { name: '노도구로 (아카무쓰)', nameJa: 'のどぐろ', description: '호쿠리쿠 대표 고급 생선. 회, 구이, 초밥 모두 일품.', priceRange: '3,000~8,000엔', mustTry: true, bestSpots: ['오미초 시장', '모리모리즈시'], mealType: 'any' },
-      { name: '가나자와 카이센동', nameJa: '金沢海鮮丼', description: '신선한 해산물을 가득 올린 덮밥. 오미초 시장의 대표 메뉴.', priceRange: '1,500~3,500엔', mustTry: true, bestSpots: ['오미초 시장 이키이키테이', '다이와'], mealType: 'lunch' },
-      { name: '하쿠잇치 금박 소프트크림', nameJa: '金箔ソフトクリーム', description: '가나자와 명물. 금박을 올린 소프트 아이스크림.', priceRange: '800~1,000엔', mustTry: true, bestSpots: ['하쿠이치 히가시야마점'], mealType: 'snack' },
-      { name: '지부니', nameJa: '治部煮', description: '가나자와 향토 요리. 오리고기와 채소를 밀가루로 걸쭉하게 조린 요리.', priceRange: '1,000~2,000엔', mustTry: false, bestSpots: ['이타루', '오토메즈시'], mealType: 'dinner' },
+      { name: '노도구로 (아카무쓰)', nameLocal: 'のどぐろ', description: '호쿠리쿠 대표 고급 생선. 회, 구이, 초밥 모두 일품.', priceRange: '3,000~8,000엔', mustTry: true, bestSpots: ['오미초 시장', '모리모리즈시'], mealType: 'any' },
+      { name: '가나자와 카이센동', nameLocal: '金沢海鮮丼', description: '신선한 해산물을 가득 올린 덮밥. 오미초 시장의 대표 메뉴.', priceRange: '1,500~3,500엔', mustTry: true, bestSpots: ['오미초 시장 이키이키테이', '다이와'], mealType: 'lunch' },
+      { name: '하쿠잇치 금박 소프트크림', nameLocal: '金箔ソフトクリーム', description: '가나자와 명물. 금박을 올린 소프트 아이스크림.', priceRange: '800~1,000엔', mustTry: true, bestSpots: ['하쿠이치 히가시야마점'], mealType: 'snack' },
+      { name: '지부니', nameLocal: '治部煮', description: '가나자와 향토 요리. 오리고기와 채소를 밀가루로 걸쭉하게 조린 요리.', priceRange: '1,000~2,000엔', mustTry: false, bestSpots: ['이타루', '오토메즈시'], mealType: 'dinner' },
     ],
     events: [
-      { name: '겐로쿠엔 유키즈리', nameJa: '兼六園雪吊り', period: '11월 중순~3월 중순', description: '소나무에 눈 피해를 막기 위한 밧줄 매달기.', highlight: '눈 내린 겐로쿠엔은 일본에서 가장 아름다운 겨울 풍경 중 하나' },
-      { name: '가나자와 백만석 축제', nameJa: '金沢百万石まつり', period: '6월 첫째 주말', description: '마에다 도시이에의 입성을 기념하는 축제.', highlight: '시대 행렬이 시내를 순회' },
+      { name: '겐로쿠엔 유키즈리', nameLocal: '兼六園雪吊り', period: '11월 중순~3월 중순', description: '소나무에 눈 피해를 막기 위한 밧줄 매달기.', highlight: '눈 내린 겐로쿠엔은 일본에서 가장 아름다운 겨울 풍경 중 하나' },
+      { name: '가나자와 백만석 축제', nameLocal: '金沢百万石まつり', period: '6월 첫째 주말', description: '마에다 도시이에의 입성을 기념하는 축제.', highlight: '시대 행렬이 시내를 순회' },
     ],
-    transportFromTokyo: { method: '호쿠리쿠 신칸센', duration: '약 2시간 30분', cost: '14,380엔 (지정석)', tips: '카가야키(최속) 이용 추천' },
-    transportFromOsaka: { method: '특급 선더버드', duration: '약 2시간 40분', cost: '7,790엔' },
+    transportLinks: [
+      { from: '도쿄', method: '호쿠리쿠 신칸센', duration: '약 2시간 30분', cost: '14,380엔 (지정석)', tips: '카가야키(최속) 이용 추천' },
+      { from: '오사카', method: '특급 선더버드', duration: '약 2시간 40분', cost: '7,790엔' },
+    ],
     neighborCities: [
       { cityId: 'takayama', cityName: '다카야마', transport: '고속버스', duration: '약 2시간 15분', dayTripViable: false },
       { cityId: 'shirakawago', cityName: '시라카와고', transport: '고속버스', duration: '약 1시간 15분', dayTripViable: true },
@@ -278,8 +183,8 @@ export const JAPAN_CITIES: CityProfile[] = [
   {
     id: 'sapporo',
     name: '삿포로',
-    nameJa: '札幌',
-    prefecture: '홋카이도',
+    nameLocal: '札幌',
+    country: '일본',
     region: '홋카이도',
     description: '홋카이도의 중심 도시. 라멘, 맥주, 눈 축제의 도시. 자연과 도시가 조화.',
     character: '맛있는 음식과 시원한 자연의 활기찬 도시',
@@ -289,14 +194,14 @@ export const JAPAN_CITIES: CityProfile[] = [
     areas: [
       {
         name: '오도리 공원·스스키노',
-        nameJa: '大通公園・すすきの',
+        nameLocal: '大通公園・すすきの',
         description: '삿포로의 심장부. 오도리 공원을 중심으로 TV탑, 스스키노 유흥가까지.',
         walkable: true,
         timeNeeded: '2~3시간',
         places: [
           {
             name: '오도리 공원',
-            nameJa: '大通公園',
+            nameLocal: '大通公園',
             category: '관광지',
             description: '삿포로 중심에 1.5km 뻗은 공원. 눈축제, 라일락축제, 가을맥주축제 등 이벤트의 무대.',
             mustVisit: true,
@@ -308,7 +213,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '삿포로 TV탑',
-            nameJa: 'さっぽろテレビ塔',
+            nameLocal: 'さっぽろテレビ塔',
             category: '관광지',
             description: '오도리 공원 동쪽 끝의 랜드마크. 전망대에서 공원 전체 조망.',
             mustVisit: false,
@@ -321,7 +226,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '니조 시장',
-            nameJa: '二条市場',
+            nameLocal: '二条市場',
             category: '맛집',
             description: '100년 넘은 역사의 해산물 시장. 아침 해산물 덮밥이 인기.',
             mustVisit: true,
@@ -336,14 +241,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '삿포로역 주변',
-        nameJa: '札幌駅周辺',
+        nameLocal: '札幌駅周辺',
         description: 'JR타워, 백화점, 지하상가가 밀집한 상업 중심지.',
         walkable: true,
         timeNeeded: '2~3시간',
         places: [
           {
             name: '삿포로 맥주 박물관',
-            nameJa: 'サッポロビール博物館',
+            nameLocal: 'サッポロビール博物館',
             category: '체험',
             description: '일본 유일의 맥주 박물관. 시음 투어가 인기.',
             mustVisit: true,
@@ -358,7 +263,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '삿포로 맥주원 징기스칸',
-            nameJa: 'サッポロビール園',
+            nameLocal: 'サッポロビール園',
             category: '맛집',
             description: '삿포로 맥주와 홋카이도 양고기 징기스칸을 함께 즐기는 삿포로 대표 미식.',
             mustVisit: true,
@@ -372,14 +277,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '마루야마 공원·홋카이도 신궁',
-        nameJa: '円山公園・北海道神宮',
+        nameLocal: '円山公園・北海道神宮',
         description: '시내에서 가까운 자연 공간. 동물원, 신사, 산책로.',
         walkable: true,
         timeNeeded: '2~3시간',
         places: [
           {
             name: '홋카이도 신궁',
-            nameJa: '北海道神宮',
+            nameLocal: '北海道神宮',
             category: '신사/사찰',
             description: '홋카이도 최대 신사. 벚꽃과 단풍 명소.',
             mustVisit: false,
@@ -394,18 +299,20 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
     ],
     foods: [
-      { name: '삿포로 미소 라멘', nameJa: '札幌味噌ラーメン', description: '홋카이도 버터·옥수수가 올라간 진한 미소 라멘. 삿포로의 영혼.', priceRange: '800~1,200엔', mustTry: true, bestSpots: ['스미레', '싯포로 라멘 요코초'], mealType: 'any' },
-      { name: '징기스칸 (양고기 구이)', nameJa: 'ジンギスカン', description: '홋카이도식 양고기 바비큐. 특제 소스에 찍어 먹는 것이 포인트.', priceRange: '1,500~3,000엔', mustTry: true, bestSpots: ['삿포로 맥주원', '다루마'], mealType: 'dinner' },
-      { name: '해산물 덮밥', nameJa: '海鮮丼', description: '성게, 연어알, 게 등 홋카이도산 해산물의 향연.', priceRange: '2,000~4,000엔', mustTry: true, bestSpots: ['니조 시장', '조가이 시장'], mealType: 'lunch' },
-      { name: '스프 카레', nameJa: 'スープカレー', description: '삿포로 발상의 독창적 카레. 큼직한 채소와 향신료 풍미.', priceRange: '1,000~1,800엔', mustTry: true, bestSpots: ['수아게+', '오쿠시바 카레'], mealType: 'lunch' },
-      { name: '시로이 코이비토', nameJa: '白い恋人', description: '삿포로 대표 기념품 과자. 공장 견학도 가능.', priceRange: '800~2,000엔', mustTry: false, bestSpots: ['시로이 코이비토 파크'], mealType: 'snack' },
+      { name: '삿포로 미소 라멘', nameLocal: '札幌味噌ラーメン', description: '홋카이도 버터·옥수수가 올라간 진한 미소 라멘. 삿포로의 영혼.', priceRange: '800~1,200엔', mustTry: true, bestSpots: ['스미레', '싯포로 라멘 요코초'], mealType: 'any' },
+      { name: '징기스칸 (양고기 구이)', nameLocal: 'ジンギスカン', description: '홋카이도식 양고기 바비큐. 특제 소스에 찍어 먹는 것이 포인트.', priceRange: '1,500~3,000엔', mustTry: true, bestSpots: ['삿포로 맥주원', '다루마'], mealType: 'dinner' },
+      { name: '해산물 덮밥', nameLocal: '海鮮丼', description: '성게, 연어알, 게 등 홋카이도산 해산물의 향연.', priceRange: '2,000~4,000엔', mustTry: true, bestSpots: ['니조 시장', '조가이 시장'], mealType: 'lunch' },
+      { name: '스프 카레', nameLocal: 'スープカレー', description: '삿포로 발상의 독창적 카레. 큼직한 채소와 향신료 풍미.', priceRange: '1,000~1,800엔', mustTry: true, bestSpots: ['수아게+', '오쿠시바 카레'], mealType: 'lunch' },
+      { name: '시로이 코이비토', nameLocal: '白い恋人', description: '삿포로 대표 기념품 과자. 공장 견학도 가능.', priceRange: '800~2,000엔', mustTry: false, bestSpots: ['시로이 코이비토 파크'], mealType: 'snack' },
     ],
     events: [
-      { name: '삿포로 눈축제', nameJa: 'さっぽろ雪まつり', period: '2월 초', description: '세계 3대 겨울 축제. 대형 눈/얼음 조각이 오도리 공원을 가득 채움.', highlight: '약 200개 이상의 눈/얼음 조각, 야간 라이트업' },
-      { name: '삿포로 오텀 페스트', nameJa: 'さっぽろオータムフェスト', period: '9~10월', description: '오도리 공원에서 열리는 대규모 음식 축제.', highlight: '홋카이도 각지의 맛을 한곳에서' },
+      { name: '삿포로 눈축제', nameLocal: 'さっぽろ雪まつり', period: '2월 초', description: '세계 3대 겨울 축제. 대형 눈/얼음 조각이 오도리 공원을 가득 채움.', highlight: '약 200개 이상의 눈/얼음 조각, 야간 라이트업' },
+      { name: '삿포로 오텀 페스트', nameLocal: 'さっぽろオータムフェスト', period: '9~10월', description: '오도리 공원에서 열리는 대규모 음식 축제.', highlight: '홋카이도 각지의 맛을 한곳에서' },
     ],
-    transportFromTokyo: { method: '비행기', duration: '약 1시간 30분', cost: '10,000~25,000엔 (LCC~JAL)', tips: '신치토세 공항에서 JR 쾌속으로 삿포로역까지 40분' },
-    transportFromOsaka: { method: '비행기', duration: '약 2시간', cost: '8,000~20,000엔' },
+    transportLinks: [
+      { from: '도쿄', method: '비행기', duration: '약 1시간 30분', cost: '10,000~25,000엔 (LCC~JAL)', tips: '신치토세 공항에서 JR 쾌속으로 삿포로역까지 40분' },
+      { from: '오사카', method: '비행기', duration: '약 2시간', cost: '8,000~20,000엔' },
+    ],
     neighborCities: [
       { cityId: 'otaru', cityName: '오타루', transport: 'JR', duration: '약 35분', dayTripViable: true },
       { cityId: 'furano', cityName: '후라노', transport: 'JR+버스', duration: '약 2시간', dayTripViable: true },
@@ -425,8 +332,8 @@ export const JAPAN_CITIES: CityProfile[] = [
   {
     id: 'kobe',
     name: '고베',
-    nameJa: '神戸',
-    prefecture: '효고현',
+    nameLocal: '神戸',
+    country: '일본',
     region: '간사이',
     description: '산과 바다 사이의 이국적인 항구 도시. 와규의 본고장이자 야경의 도시.',
     character: '세련되고 이국적인 항구 도시',
@@ -436,14 +343,14 @@ export const JAPAN_CITIES: CityProfile[] = [
     areas: [
       {
         name: '기타노이진칸',
-        nameJa: '北野異人館',
+        nameLocal: '北野異人館',
         description: '메이지 시대 외국인 저택이 모인 이국적 언덕 마을.',
         walkable: true,
         timeNeeded: '2~3시간',
         places: [
           {
             name: '기타노이진칸',
-            nameJa: '北野異人館街',
+            nameLocal: '北野異人館街',
             category: '관광지',
             description: '19세기 서양식 저택이 늘어선 이국적 거리. 풍향계의 집, 사쓰마의 집 등.',
             mustVisit: true,
@@ -459,14 +366,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '난킨마치·하버랜드',
-        nameJa: '南京町・ハーバーランド',
+        nameLocal: '南京町・ハーバーランド',
         description: '차이나타운에서 항구까지 걸어서 즐기는 고베의 핵심 코스.',
         walkable: true,
         timeNeeded: '3~4시간',
         places: [
           {
             name: '난킨마치 (고베 차이나타운)',
-            nameJa: '南京町',
+            nameLocal: '南京町',
             category: '맛집',
             description: '일본 3대 차이나타운. 부타만(돼지고기만두)이 대표 먹거리.',
             mustVisit: true,
@@ -478,7 +385,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '고베 하버랜드 모자이크',
-            nameJa: '神戸ハーバーランドモザイク',
+            nameLocal: '神戸ハーバーランドモザイク',
             category: '쇼핑',
             description: '항구 전망의 쇼핑·레스토랑 복합시설. 고베 포트타워 뷰가 환상.',
             mustVisit: true,
@@ -493,14 +400,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '롯코산',
-        nameJa: '六甲山',
+        nameLocal: '六甲山',
         description: '고베를 내려다보는 산. 1000만 달러 야경의 무대.',
         walkable: false,
         timeNeeded: '반나절',
         places: [
           {
             name: '롯코산 전망대',
-            nameJa: '六甲山展望台',
+            nameLocal: '六甲山展望台',
             category: '자연',
             description: '고베·오사카만의 1000만 달러 야경. 일본 3대 야경.',
             mustVisit: true,
@@ -516,15 +423,17 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
     ],
     foods: [
-      { name: '고베규 (고베 소고기)', nameJa: '神戸牛', description: '세계적으로 유명한 와규. 마블링이 예술적인 최고급 소고기.', priceRange: '5,000~20,000엔', mustTry: true, bestSpots: ['모리야', '스테이크랜드', '와쿠오'], mealType: 'dinner' },
-      { name: '부타만 (돼지고기 만두)', nameJa: '豚まん', description: '난킨마치 명물. 육즙 가득한 찐빵.', priceRange: '300~500엔', mustTry: true, bestSpots: ['로쇼키', '주니반가이'], mealType: 'snack' },
-      { name: '고베 스위츠', nameJa: '神戸スイーツ', description: '일본 양과자 발상지. 치즈케이크, 푸딩 등.', priceRange: '500~1,000엔', mustTry: false, bestSpots: ['콘디토라이 고베', '모로조프'], mealType: 'snack' },
+      { name: '고베규 (고베 소고기)', nameLocal: '神戸牛', description: '세계적으로 유명한 와규. 마블링이 예술적인 최고급 소고기.', priceRange: '5,000~20,000엔', mustTry: true, bestSpots: ['모리야', '스테이크랜드', '와쿠오'], mealType: 'dinner' },
+      { name: '부타만 (돼지고기 만두)', nameLocal: '豚まん', description: '난킨마치 명물. 육즙 가득한 찐빵.', priceRange: '300~500엔', mustTry: true, bestSpots: ['로쇼키', '주니반가이'], mealType: 'snack' },
+      { name: '고베 스위츠', nameLocal: '神戸スイーツ', description: '일본 양과자 발상지. 치즈케이크, 푸딩 등.', priceRange: '500~1,000엔', mustTry: false, bestSpots: ['콘디토라이 고베', '모로조프'], mealType: 'snack' },
     ],
     events: [
-      { name: '고베 루미나리에', nameJa: '神戸ルミナリエ', period: '12월', description: '한신대지진 추모 일루미네이션. 아름다운 빛의 터널.', highlight: '수십만 개 LED로 만든 아치형 빛의 회랑' },
+      { name: '고베 루미나리에', nameLocal: '神戸ルミナリエ', period: '12월', description: '한신대지진 추모 일루미네이션. 아름다운 빛의 터널.', highlight: '수십만 개 LED로 만든 아치형 빛의 회랑' },
     ],
-    transportFromTokyo: { method: '신칸센', duration: '약 2시간 40분', cost: '15,000엔 (노조미)', tips: '신고베역 하차' },
-    transportFromOsaka: { method: 'JR', duration: '약 21분', cost: '420엔' },
+    transportLinks: [
+      { from: '도쿄', method: '신칸센', duration: '약 2시간 40분', cost: '15,000엔 (노조미)', tips: '신고베역 하차' },
+      { from: '오사카', method: 'JR', duration: '약 21분', cost: '420엔' },
+    ],
     neighborCities: [
       { cityId: 'himeji', cityName: '히메지', transport: 'JR', duration: '약 40분', dayTripViable: true },
       { cityId: 'arima', cityName: '아리마 온천', transport: '버스', duration: '약 30분', dayTripViable: true },
@@ -544,8 +453,8 @@ export const JAPAN_CITIES: CityProfile[] = [
   {
     id: 'kagoshima',
     name: '가고시마',
-    nameJa: '鹿児島',
-    prefecture: '가고시마현',
+    nameLocal: '鹿児島',
+    country: '일본',
     region: '규슈',
     description: '활화산 사쿠라지마를 마주한 남국 도시. 흑돼지, 온천, 사쓰마 역사의 땅.',
     character: '화산과 함께 사는 남국의 활력',
@@ -555,14 +464,14 @@ export const JAPAN_CITIES: CityProfile[] = [
     areas: [
       {
         name: '사쿠라지마',
-        nameJa: '桜島',
+        nameLocal: '桜島',
         description: '가고시마의 상징인 활화산. 페리로 15분.',
         walkable: false,
         timeNeeded: '반나절',
         places: [
           {
             name: '사쿠라지마',
-            nameJa: '桜島',
+            nameLocal: '桜島',
             category: '자연',
             description: '현재도 활동 중인 화산. 전망대, 용암 해변, 족욕 온천 등.',
             mustVisit: true,
@@ -578,14 +487,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '텐몬칸·시내 중심',
-        nameJa: '天文館・市内',
+        nameLocal: '天文館・市内',
         description: '가고시마 최대 번화가. 쇼핑, 맛집, 역사.',
         walkable: true,
         timeNeeded: '2~3시간',
         places: [
           {
             name: '센간엔 (시마즈 정원)',
-            nameJa: '仙巌園',
+            nameLocal: '仙巌園',
             category: '관광지',
             description: '사쿠라지마를 차경으로 한 시마즈 가문의 정원. 세계유산.',
             mustVisit: true,
@@ -599,7 +508,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '텐몬칸 상점가',
-            nameJa: '天文館通り',
+            nameLocal: '天文館通り',
             category: '쇼핑',
             description: '가고시마 최대 아케이드. 시로쿠마 빙수, 흑돼지 맛집 밀집.',
             mustVisit: true,
@@ -613,15 +522,17 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
     ],
     foods: [
-      { name: '가고시마 흑돼지', nameJa: '黒豚', description: '사쓰마 흑돼지 돈가스·샤브샤브. 달콤하고 부드러운 맛.', priceRange: '1,500~3,000엔', mustTry: true, bestSpots: ['쿠로가츠테이', '아지노토쿠오'], mealType: 'lunch' },
-      { name: '시로쿠마 빙수', nameJa: '白くま', description: '가고시마 발상 프루츠 빙수. 곰돌이 얼굴 형태.', priceRange: '500~800엔', mustTry: true, bestSpots: ['텐몬칸 무쟈키'], mealType: 'snack' },
-      { name: '키비나고', nameJa: 'きびなご', description: '가고시마 특산 은빛 작은 생선. 회, 튀김, 구이로.', priceRange: '500~1,000엔', mustTry: false, bestSpots: ['텐몬칸 이자카야'], mealType: 'dinner' },
+      { name: '가고시마 흑돼지', nameLocal: '黒豚', description: '사쓰마 흑돼지 돈가스·샤브샤브. 달콤하고 부드러운 맛.', priceRange: '1,500~3,000엔', mustTry: true, bestSpots: ['쿠로가츠테이', '아지노토쿠오'], mealType: 'lunch' },
+      { name: '시로쿠마 빙수', nameLocal: '白くま', description: '가고시마 발상 프루츠 빙수. 곰돌이 얼굴 형태.', priceRange: '500~800엔', mustTry: true, bestSpots: ['텐몬칸 무쟈키'], mealType: 'snack' },
+      { name: '키비나고', nameLocal: 'きびなご', description: '가고시마 특산 은빛 작은 생선. 회, 튀김, 구이로.', priceRange: '500~1,000엔', mustTry: false, bestSpots: ['텐몬칸 이자카야'], mealType: 'dinner' },
     ],
     events: [
-      { name: '오하라마츠리', nameJa: 'おはら祭', period: '11월', description: '2만 명이 춤추는 가고시마 최대 축제.', highlight: '가고시마 거리를 가득 메우는 군무' },
+      { name: '오하라마츠리', nameLocal: 'おはら祭', period: '11월', description: '2만 명이 춤추는 가고시마 최대 축제.', highlight: '가고시마 거리를 가득 메우는 군무' },
     ],
-    transportFromTokyo: { method: '비행기', duration: '약 1시간 50분', cost: '10,000~25,000엔' },
-    transportFromOsaka: { method: '신칸센 미즈호', duration: '약 3시간 40분', cost: '21,000엔' },
+    transportLinks: [
+      { from: '도쿄', method: '비행기', duration: '약 1시간 50분', cost: '10,000~25,000엔' },
+      { from: '오사카', method: '신칸센 미즈호', duration: '약 3시간 40분', cost: '21,000엔' },
+    ],
     neighborCities: [
       { cityId: 'yakushima', cityName: '야쿠시마', transport: '고속선', duration: '약 2시간', dayTripViable: false },
       { cityId: 'ibusuki', cityName: '이부스키', transport: 'JR', duration: '약 1시간', dayTripViable: true },
@@ -641,8 +552,8 @@ export const JAPAN_CITIES: CityProfile[] = [
   {
     id: 'hiroshima',
     name: '히로시마',
-    nameJa: '広島',
-    prefecture: '히로시마현',
+    nameLocal: '広島',
+    country: '일본',
     region: '추고쿠',
     description: '평화의 도시이자 오코노미야키의 본고장. 미야지마(이쓰쿠시마)와 함께.',
     character: '평화와 미식의 따뜻한 도시',
@@ -652,14 +563,14 @@ export const JAPAN_CITIES: CityProfile[] = [
     areas: [
       {
         name: '평화기념공원',
-        nameJa: '平和記念公園',
+        nameLocal: '平和記念公園',
         description: '원폭의 역사와 평화의 메시지를 전하는 장소.',
         walkable: true,
         timeNeeded: '2~3시간',
         places: [
           {
             name: '히로시마 평화기념 자료관',
-            nameJa: '広島平和記念資料館',
+            nameLocal: '広島平和記念資料館',
             category: '관광지',
             description: '원폭의 역사를 기록한 박물관. 감동적이고 교육적.',
             mustVisit: true,
@@ -673,7 +584,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '원폭 돔',
-            nameJa: '原爆ドーム',
+            nameLocal: '原爆ドーム',
             category: '관광지',
             description: '세계유산. 원폭의 참화를 전하는 상징적 건물.',
             mustVisit: true,
@@ -688,14 +599,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '미야지마 (이쓰쿠시마)',
-        nameJa: '宮島',
+        nameLocal: '宮島',
         description: '바다 위 도리이로 유명한 세계유산 섬. 히로시마에서 페리로 이동.',
         walkable: true,
         timeNeeded: '반나절~1일',
         places: [
           {
             name: '이쓰쿠시마 신사',
-            nameJa: '厳島神社',
+            nameLocal: '厳島神社',
             category: '신사/사찰',
             description: '바다 위에 떠 있는 듯한 신사. 대도리이가 상징. 세계유산.',
             mustVisit: true,
@@ -710,7 +621,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '미야지마 상점가',
-            nameJa: '宮島表参道商店街',
+            nameLocal: '宮島表参道商店街',
             category: '쇼핑',
             description: '모미지 만주, 구운 굴, 아나고(붕장어) 등 먹거리 거리.',
             mustVisit: true,
@@ -724,16 +635,18 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
     ],
     foods: [
-      { name: '히로시마풍 오코노미야키', nameJa: '広島風お好み焼き', description: '반죽·캐비지·면·소스를 겹겹이 쌓는 히로시마 소울 푸드.', priceRange: '800~1,500엔', mustTry: true, bestSpots: ['나기사', '미치야스', '오코노미무라'], mealType: 'lunch' },
-      { name: '굴 (카키)', nameJa: '牡蠣', description: '히로시마는 일본 최대 굴 산지. 구이, 튀김, 생굴.', priceRange: '500~2,000엔', mustTry: true, bestSpots: ['미야지마 상점가', '카키 고야'], mealType: 'any' },
-      { name: '아나고 (붕장어)', nameJa: 'あなご', description: '미야지마 명물. 아나고메시(붕장어 덮밥)가 대표.', priceRange: '1,500~2,500엔', mustTry: true, bestSpots: ['우에노', '후지타야'], mealType: 'lunch' },
-      { name: '모미지 만주', nameJa: 'もみじ饅頭', description: '단풍잎 모양 만주. 미야지마·히로시마 대표 기념품.', priceRange: '200~300엔', mustTry: false, bestSpots: ['미야지마 상점가'], mealType: 'snack' },
+      { name: '히로시마풍 오코노미야키', nameLocal: '広島風お好み焼き', description: '반죽·캐비지·면·소스를 겹겹이 쌓는 히로시마 소울 푸드.', priceRange: '800~1,500엔', mustTry: true, bestSpots: ['나기사', '미치야스', '오코노미무라'], mealType: 'lunch' },
+      { name: '굴 (카키)', nameLocal: '牡蠣', description: '히로시마는 일본 최대 굴 산지. 구이, 튀김, 생굴.', priceRange: '500~2,000엔', mustTry: true, bestSpots: ['미야지마 상점가', '카키 고야'], mealType: 'any' },
+      { name: '아나고 (붕장어)', nameLocal: 'あなご', description: '미야지마 명물. 아나고메시(붕장어 덮밥)가 대표.', priceRange: '1,500~2,500엔', mustTry: true, bestSpots: ['우에노', '후지타야'], mealType: 'lunch' },
+      { name: '모미지 만주', nameLocal: 'もみじ饅頭', description: '단풍잎 모양 만주. 미야지마·히로시마 대표 기념품.', priceRange: '200~300엔', mustTry: false, bestSpots: ['미야지마 상점가'], mealType: 'snack' },
     ],
     events: [
-      { name: '히로시마 평화기념식', nameJa: '平和記念式典', period: '8월 6일', description: '원폭 투하일 추모 행사.', highlight: '등불 흘리기 행사가 감동적' },
+      { name: '히로시마 평화기념식', nameLocal: '平和記念式典', period: '8월 6일', description: '원폭 투하일 추모 행사.', highlight: '등불 흘리기 행사가 감동적' },
     ],
-    transportFromTokyo: { method: '신칸센 노조미', duration: '약 3시간 45분', cost: '19,440엔' },
-    transportFromOsaka: { method: '신칸센 노조미', duration: '약 1시간 20분', cost: '10,400엔' },
+    transportLinks: [
+      { from: '도쿄', method: '신칸센 노조미', duration: '약 3시간 45분', cost: '19,440엔' },
+      { from: '오사카', method: '신칸센 노조미', duration: '약 1시간 20분', cost: '10,400엔' },
+    ],
     neighborCities: [
       { cityId: 'onomichi', cityName: '오노미치', transport: 'JR', duration: '약 1시간 20분', dayTripViable: true },
       { cityId: 'iwakuni', cityName: '이와쿠니', transport: 'JR', duration: '약 50분', dayTripViable: true },
@@ -753,8 +666,8 @@ export const JAPAN_CITIES: CityProfile[] = [
   {
     id: 'tokyo',
     name: '도쿄',
-    nameJa: '東京',
-    prefecture: '도쿄도',
+    nameLocal: '東京',
+    country: '일본',
     region: '간토',
     description: '일본의 수도. 전통과 초현대가 공존하는 세계 최대의 메트로폴리스.',
     character: '끝없이 새로운 것을 발견하는 거대 도시',
@@ -764,14 +677,14 @@ export const JAPAN_CITIES: CityProfile[] = [
     areas: [
       {
         name: '아사쿠사·우에노',
-        nameJa: '浅草・上野',
+        nameLocal: '浅草・上野',
         description: '에도 시대의 정취가 남아 있는 전통 지역. 센소지와 아메요코.',
         walkable: true,
         timeNeeded: '3~4시간',
         places: [
           {
             name: '센소지 (아사쿠사)',
-            nameJa: '浅草寺',
+            nameLocal: '浅草寺',
             category: '신사/사찰',
             description: '도쿄 최고(最古)의 사찰. 가미나리몬과 나카미세 상점가가 유명.',
             mustVisit: true,
@@ -785,7 +698,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '아메요코 상점가',
-            nameJa: 'アメ横商店街',
+            nameLocal: 'アメ横商店街',
             category: '쇼핑',
             description: '우에노역 옆 활기찬 시장. 해산물, 의류, 과자 등 저렴한 쇼핑.',
             mustVisit: true,
@@ -798,7 +711,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '우에노 공원',
-            nameJa: '上野恩賜公園',
+            nameLocal: '上野恩賜公園',
             category: '관광지',
             description: '박물관, 미술관, 동물원이 모인 문화 공간. 봄 벚꽃 명소.',
             mustVisit: true,
@@ -813,14 +726,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '시부야·하라주쿠',
-        nameJa: '渋谷・原宿',
+        nameLocal: '渋谷・原宿',
         description: '젊은 문화의 중심. 트렌드, 패션, 카페의 메카.',
         walkable: true,
         timeNeeded: '3~4시간',
         places: [
           {
             name: '시부야 스크램블 교차로',
-            nameJa: '渋谷スクランブル交差点',
+            nameLocal: '渋谷スクランブル交差点',
             category: '관광지',
             description: '세계에서 가장 유명한 교차로. 한 번에 3,000명이 건너는 장관.',
             mustVisit: true,
@@ -834,7 +747,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '메이지 신궁',
-            nameJa: '明治神宮',
+            nameLocal: '明治神宮',
             category: '신사/사찰',
             description: '도심 속 숲에 둘러싸인 신사. 하라주쿠역 바로 옆.',
             mustVisit: true,
@@ -847,7 +760,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '다케시타도리',
-            nameJa: '竹下通り',
+            nameLocal: '竹下通り',
             category: '쇼핑',
             description: '하라주쿠의 상징. 카와이이 문화, 크레이프, 빈티지 숍.',
             mustVisit: true,
@@ -861,14 +774,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '신주쿠',
-        nameJa: '新宿',
+        nameLocal: '新宿',
         description: '도쿄 최대 번화가. 백화점, 이자카야, 가부키쵸, 도청 전망대.',
         walkable: true,
         timeNeeded: '2~4시간',
         places: [
           {
             name: '도쿄 도청 전망대',
-            nameJa: '東京都庁展望室',
+            nameLocal: '東京都庁展望室',
             category: '관광지',
             description: '45층 무료 전망대. 후지산까지 보이는 날도.',
             mustVisit: true,
@@ -882,7 +795,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '오모이데요코쵸',
-            nameJa: '思い出横丁',
+            nameLocal: '思い出横丁',
             category: '맛집',
             description: '신주쿠역 서쪽의 좁은 골목 이자카야 거리. 레트로 분위기.',
             mustVisit: false,
@@ -896,14 +809,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '아키하바라·도쿄역',
-        nameJa: '秋葉原・東京駅',
+        nameLocal: '秋葉原・東京駅',
         description: '오타쿠 문화의 성지와 마루노우치의 세련됨이 공존.',
         walkable: true,
         timeNeeded: '2~3시간',
         places: [
           {
             name: '아키하바라',
-            nameJa: '秋葉原',
+            nameLocal: '秋葉原',
             category: '쇼핑',
             description: '전자제품·애니메이션·피규어의 성지. 메이드 카페도 유명.',
             mustVisit: true,
@@ -915,7 +828,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '도쿄역 이치방가이',
-            nameJa: '東京駅一番街',
+            nameLocal: '東京駅一番街',
             category: '쇼핑',
             description: '캐릭터 스트리트, 라멘 스트리트 등 테마별 쇼핑 거리.',
             mustVisit: false,
@@ -929,14 +842,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '오다이바·도요스',
-        nameJa: 'お台場・豊洲',
+        nameLocal: 'お台場・豊洲',
         description: '도쿄만 워터프론트. 팀랩, 도요스 시장, 쇼핑몰.',
         walkable: false,
         timeNeeded: '반나절',
         places: [
           {
             name: '팀랩 보더리스',
-            nameJa: 'チームラボボーダレス',
+            nameLocal: 'チームラボボーダレス',
             category: '체험',
             description: '몰입형 디지털 아트 미술관. SNS 필수 스팟.',
             mustVisit: true,
@@ -951,7 +864,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '도요스 시장',
-            nameJa: '豊洲市場',
+            nameLocal: '豊洲市場',
             category: '맛집',
             description: '구 츠키지 이전 시장. 참치 경매 견학, 초밥 맛집 밀집.',
             mustVisit: true,
@@ -967,19 +880,21 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
     ],
     foods: [
-      { name: '에도마에 스시', nameJa: '江戸前寿司', description: '도쿄만 해산물로 만드는 전통 초밥. 장인의 기술이 살아 있는 카운터 스시.', priceRange: '3,000~20,000엔', mustTry: true, bestSpots: ['도요스 시장 스시다이', '스시야 사이토', '미도리즈시'], mealType: 'lunch' },
-      { name: '라멘', nameJa: 'ラーメン', description: '도쿄 라멘은 쇼유(간장) 베이스가 원조. 지역별로 다양한 스타일.', priceRange: '800~1,500엔', mustTry: true, bestSpots: ['후우인야', '이치란', '아후리'], mealType: 'any' },
-      { name: '몬자야키', nameJa: 'もんじゃ焼き', description: '도쿄 츠키시마 명물. 묽은 반죽을 철판에 구워 먹는 서민 음식.', priceRange: '1,000~2,000엔', mustTry: true, bestSpots: ['츠키시마 몬자 스트리트'], mealType: 'lunch' },
-      { name: '텐동 (튀김덮밥)', nameJa: '天丼', description: '바삭한 텐푸라를 밥 위에 올린 도쿄식 덮밥.', priceRange: '1,000~2,500엔', mustTry: false, bestSpots: ['카네코 한노스케', '텐야'], mealType: 'lunch' },
-      { name: '야키토리', nameJa: '焼き鳥', description: '숯불에 구운 닭꼬치. 이자카야의 필수 안주.', priceRange: '500~2,000엔', mustTry: true, bestSpots: ['오모이데요코쵸', '토리키조쿠'], mealType: 'dinner' },
+      { name: '에도마에 스시', nameLocal: '江戸前寿司', description: '도쿄만 해산물로 만드는 전통 초밥. 장인의 기술이 살아 있는 카운터 스시.', priceRange: '3,000~20,000엔', mustTry: true, bestSpots: ['도요스 시장 스시다이', '스시야 사이토', '미도리즈시'], mealType: 'lunch' },
+      { name: '라멘', nameLocal: 'ラーメン', description: '도쿄 라멘은 쇼유(간장) 베이스가 원조. 지역별로 다양한 스타일.', priceRange: '800~1,500엔', mustTry: true, bestSpots: ['후우인야', '이치란', '아후리'], mealType: 'any' },
+      { name: '몬자야키', nameLocal: 'もんじゃ焼き', description: '도쿄 츠키시마 명물. 묽은 반죽을 철판에 구워 먹는 서민 음식.', priceRange: '1,000~2,000엔', mustTry: true, bestSpots: ['츠키시마 몬자 스트리트'], mealType: 'lunch' },
+      { name: '텐동 (튀김덮밥)', nameLocal: '天丼', description: '바삭한 텐푸라를 밥 위에 올린 도쿄식 덮밥.', priceRange: '1,000~2,500엔', mustTry: false, bestSpots: ['카네코 한노스케', '텐야'], mealType: 'lunch' },
+      { name: '야키토리', nameLocal: '焼き鳥', description: '숯불에 구운 닭꼬치. 이자카야의 필수 안주.', priceRange: '500~2,000엔', mustTry: true, bestSpots: ['오모이데요코쵸', '토리키조쿠'], mealType: 'dinner' },
     ],
     events: [
-      { name: '벚꽃 시즌', nameJa: '桜のシーズン', period: '3월 말~4월 초', description: '우에노·치도리가후치·메구로강 등 벚꽃 명소에서 하나미.', highlight: '치도리가후치 보트에서 벚꽃 터널 감상' },
-      { name: '산자마츠리', nameJa: '三社祭', period: '5월 셋째 주말', description: '아사쿠사 최대 축제. 100개 이상의 미코시(신여)가 거리를 누빔.', highlight: '에도의 열기를 느끼는 도쿄 3대 축제' },
-      { name: '코미케', nameJa: 'コミケ', period: '8월·12월', description: '세계 최대 동인지 즉매회. 오타쿠 문화의 정점.', highlight: '도쿄 빅사이트에서 3일간 50만 명 이상 참가' },
+      { name: '벚꽃 시즌', nameLocal: '桜のシーズン', period: '3월 말~4월 초', description: '우에노·치도리가후치·메구로강 등 벚꽃 명소에서 하나미.', highlight: '치도리가후치 보트에서 벚꽃 터널 감상' },
+      { name: '산자마츠리', nameLocal: '三社祭', period: '5월 셋째 주말', description: '아사쿠사 최대 축제. 100개 이상의 미코시(신여)가 거리를 누빔.', highlight: '에도의 열기를 느끼는 도쿄 3대 축제' },
+      { name: '코미케', nameLocal: 'コミケ', period: '8월·12월', description: '세계 최대 동인지 즉매회. 오타쿠 문화의 정점.', highlight: '도쿄 빅사이트에서 3일간 50만 명 이상 참가' },
     ],
-    transportFromTokyo: { method: '-', duration: '-', cost: '-' },
-    transportFromOsaka: { method: '신칸센 노조미', duration: '약 2시간 15분', cost: '14,720엔' },
+    transportLinks: [
+      { from: '도쿄', method: '-', duration: '-', cost: '-' },
+      { from: '오사카', method: '신칸센 노조미', duration: '약 2시간 15분', cost: '14,720엔' },
+    ],
     neighborCities: [
       { cityId: 'yokohama', cityName: '요코하마', transport: 'JR/도큐 도요코선', duration: '약 25분', dayTripViable: true },
       { cityId: 'kamakura', cityName: '가마쿠라', transport: 'JR', duration: '약 55분', dayTripViable: true },
@@ -1003,8 +918,8 @@ export const JAPAN_CITIES: CityProfile[] = [
   {
     id: 'osaka',
     name: '오사카',
-    nameJa: '大阪',
-    prefecture: '오사카부',
+    nameLocal: '大阪',
+    country: '일본',
     region: '간사이',
     description: '먹다 쓰러지는 미식의 도시. 활기찬 상인 문화와 유머의 도시.',
     character: '먹고, 웃고, 즐기는 에너지 넘치는 도시',
@@ -1014,14 +929,14 @@ export const JAPAN_CITIES: CityProfile[] = [
     areas: [
       {
         name: '도톤보리·난바',
-        nameJa: '道頓堀・難波',
+        nameLocal: '道頓堀・難波',
         description: '오사카의 심장. 글리코 간판, 먹거리 천국, 쇼핑의 중심.',
         walkable: true,
         timeNeeded: '3~4시간',
         places: [
           {
             name: '도톤보리',
-            nameJa: '道頓堀',
+            nameLocal: '道頓堀',
             category: '관광지',
             description: '글리코 간판, 거대 게 간판 등 화려한 네온사인의 거리. 오사카의 상징.',
             mustVisit: true,
@@ -1035,7 +950,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '구로몬 시장',
-            nameJa: '黒門市場',
+            nameLocal: '黒門市場',
             category: '맛집',
             description: '오사카의 부엌. 신선한 해산물, 과일, 꼬치 등 먹거리 풍부.',
             mustVisit: true,
@@ -1048,7 +963,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '신사이바시스지',
-            nameJa: '心斎橋筋商店街',
+            nameLocal: '心斎橋筋商店街',
             category: '쇼핑',
             description: '600m 아케이드 쇼핑가. 브랜드숍, 드럭스토어, 의류점 밀집.',
             mustVisit: true,
@@ -1062,14 +977,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '오사카성·텐노지',
-        nameJa: '大阪城・天王寺',
+        nameLocal: '大阪城・天王寺',
         description: '역사의 오사카성과 아베노 하루카스의 스카이라인.',
         walkable: true,
         timeNeeded: '2~3시간',
         places: [
           {
             name: '오사카성',
-            nameJa: '大阪城',
+            nameLocal: '大阪城',
             category: '관광지',
             description: '도요토미 히데요시가 세운 상징적 성. 천수각 전망대에서 시내 조망.',
             mustVisit: true,
@@ -1083,7 +998,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '아베노 하루카스',
-            nameJa: 'あべのハルカス',
+            nameLocal: 'あべのハルカス',
             category: '관광지',
             description: '일본에서 가장 높은 빌딩(300m). 전망대에서 오사카 전경.',
             mustVisit: false,
@@ -1098,14 +1013,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '신세카이·쓰텐카쿠',
-        nameJa: '新世界・通天閣',
+        nameLocal: '新世界・通天閣',
         description: '레트로 분위기의 서민 거리. 쿠시카츠의 본고장.',
         walkable: true,
         timeNeeded: '1.5~2시간',
         places: [
           {
             name: '쓰텐카쿠',
-            nameJa: '通天閣',
+            nameLocal: '通天閣',
             category: '관광지',
             description: '오사카의 에펠탑. 레트로 전망탑에서 신세카이 조망.',
             mustVisit: true,
@@ -1120,14 +1035,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: 'USJ (유니버설 스튜디오)',
-        nameJa: 'USJ',
+        nameLocal: 'USJ',
         description: '해리포터, 마리오 등 인기 테마파크.',
         walkable: true,
         timeNeeded: '1일',
         places: [
           {
             name: '유니버설 스튜디오 재팬',
-            nameJa: 'ユニバーサル・スタジオ・ジャパン',
+            nameLocal: 'ユニバーサル・スタジオ・ジャパン',
             category: '체험',
             description: '해리포터, 슈퍼닌텐도월드 등 인기 어트랙션. 오사카 필수 코스.',
             mustVisit: true,
@@ -1143,18 +1058,20 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
     ],
     foods: [
-      { name: '타코야키', nameJa: 'たこ焼き', description: '오사카의 소울 푸드. 바삭한 겉면과 트로트로한 속. 길거리 간식의 왕.', priceRange: '500~800엔', mustTry: true, bestSpots: ['와나카', '쿠쿠루', '아카시야키'], mealType: 'snack' },
-      { name: '오코노미야키', nameJa: 'お好み焼き', description: '오사카식은 재료를 섞어 굽는 스타일. 마요+소스 조합이 핵심.', priceRange: '800~1,500엔', mustTry: true, bestSpots: ['미즈노', '후쿠타로', '치보'], mealType: 'lunch' },
-      { name: '쿠시카츠', nameJa: '串カツ', description: '재료를 꼬치에 끼워 튀기는 신세카이 명물. 소스 이중 딥 금지!', priceRange: '1,000~2,000엔', mustTry: true, bestSpots: ['다루마', '요시다'], mealType: 'dinner' },
-      { name: '이카야키', nameJa: 'いか焼き', description: '오징어를 반죽에 넣어 철판에 눌러 구운 오사카 서민 간식.', priceRange: '200~400엔', mustTry: false, bestSpots: ['한큐 백화점 지하'], mealType: 'snack' },
-      { name: '551 호라이 부타만', nameJa: '551蓬莱豚まん', description: '오사카 기차역 명물 돼지고기 만두. 오사카인의 소울 간식.', priceRange: '200~400엔', mustTry: true, bestSpots: ['난바 본점', '각 역사 매장'], mealType: 'snack' },
+      { name: '타코야키', nameLocal: 'たこ焼き', description: '오사카의 소울 푸드. 바삭한 겉면과 트로트로한 속. 길거리 간식의 왕.', priceRange: '500~800엔', mustTry: true, bestSpots: ['와나카', '쿠쿠루', '아카시야키'], mealType: 'snack' },
+      { name: '오코노미야키', nameLocal: 'お好み焼き', description: '오사카식은 재료를 섞어 굽는 스타일. 마요+소스 조합이 핵심.', priceRange: '800~1,500엔', mustTry: true, bestSpots: ['미즈노', '후쿠타로', '치보'], mealType: 'lunch' },
+      { name: '쿠시카츠', nameLocal: '串カツ', description: '재료를 꼬치에 끼워 튀기는 신세카이 명물. 소스 이중 딥 금지!', priceRange: '1,000~2,000엔', mustTry: true, bestSpots: ['다루마', '요시다'], mealType: 'dinner' },
+      { name: '이카야키', nameLocal: 'いか焼き', description: '오징어를 반죽에 넣어 철판에 눌러 구운 오사카 서민 간식.', priceRange: '200~400엔', mustTry: false, bestSpots: ['한큐 백화점 지하'], mealType: 'snack' },
+      { name: '551 호라이 부타만', nameLocal: '551蓬莱豚まん', description: '오사카 기차역 명물 돼지고기 만두. 오사카인의 소울 간식.', priceRange: '200~400엔', mustTry: true, bestSpots: ['난바 본점', '각 역사 매장'], mealType: 'snack' },
     ],
     events: [
-      { name: '텐진마츠리', nameJa: '天神祭', period: '7월 24~25일', description: '일본 3대 축제. 배 퍼레이드와 불꽃놀이.', highlight: '오카와 강 위 불꽃놀이와 배 행렬' },
-      { name: '에비스마츠리', nameJa: '十日戎', period: '1월 9~11일', description: '이마미야 에비스 신사의 상매 번영 축제.', highlight: '복 갈퀴(후쿠자사)를 사서 한 해 운을 기원' },
+      { name: '텐진마츠리', nameLocal: '天神祭', period: '7월 24~25일', description: '일본 3대 축제. 배 퍼레이드와 불꽃놀이.', highlight: '오카와 강 위 불꽃놀이와 배 행렬' },
+      { name: '에비스마츠리', nameLocal: '十日戎', period: '1월 9~11일', description: '이마미야 에비스 신사의 상매 번영 축제.', highlight: '복 갈퀴(후쿠자사)를 사서 한 해 운을 기원' },
     ],
-    transportFromTokyo: { method: '신칸센 노조미', duration: '약 2시간 15분', cost: '14,720엔', tips: '신오사카역 하차 후 미도스지선으로 난바까지 15분' },
-    transportFromOsaka: { method: '-', duration: '-', cost: '-' },
+    transportLinks: [
+      { from: '도쿄', method: '신칸센 노조미', duration: '약 2시간 15분', cost: '14,720엔', tips: '신오사카역 하차 후 미도스지선으로 난바까지 15분' },
+      { from: '오사카', method: '-', duration: '-', cost: '-' },
+    ],
     neighborCities: [
       { cityId: 'kyoto', cityName: '교토', transport: 'JR/한큐', duration: '약 15~30분', dayTripViable: true },
       { cityId: 'nara', cityName: '나라', transport: '긴테쓰', duration: '약 35분', dayTripViable: true },
@@ -1176,8 +1093,8 @@ export const JAPAN_CITIES: CityProfile[] = [
   {
     id: 'kyoto',
     name: '교토',
-    nameJa: '京都',
-    prefecture: '교토부',
+    nameLocal: '京都',
+    country: '일본',
     region: '간사이',
     description: '천년 고도. 17개 세계유산, 2,000개 이상의 신사와 사찰의 도시.',
     character: '시간이 멈춘 듯한 일본 전통 미의 정수',
@@ -1187,14 +1104,14 @@ export const JAPAN_CITIES: CityProfile[] = [
     areas: [
       {
         name: '히가시야마',
-        nameJa: '東山',
+        nameLocal: '東山',
         description: '기요미즈데라, 기온, 니넨자카를 잇는 교토의 황금 루트.',
         walkable: true,
         timeNeeded: '4~6시간',
         places: [
           {
             name: '기요미즈데라',
-            nameJa: '清水寺',
+            nameLocal: '清水寺',
             category: '신사/사찰',
             description: '교토의 상징. "기요미즈의 무대"에서 내려다보는 절경. 세계유산.',
             mustVisit: true,
@@ -1208,7 +1125,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '니넨자카·산넨자카',
-            nameJa: '二年坂・三年坂',
+            nameLocal: '二年坂・三年坂',
             category: '관광지',
             description: '기요미즈데라로 이어지는 돌계단 골목. 전통 상점과 카페.',
             mustVisit: true,
@@ -1222,7 +1139,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '기온 (하나미코지)',
-            nameJa: '祇園・花見小路',
+            nameLocal: '祇園・花見小路',
             category: '관광지',
             description: '마이코(게이샤)를 만날 수 있는 전통 거리. 석등과 목조 건물.',
             mustVisit: true,
@@ -1238,14 +1155,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '킨카쿠지·아라시야마',
-        nameJa: '金閣寺・嵐山',
+        nameLocal: '金閣寺・嵐山',
         description: '금각사의 화려함과 아라시야마 대나무숲의 청량함.',
         walkable: false,
         timeNeeded: '4~5시간',
         places: [
           {
             name: '킨카쿠지 (금각사)',
-            nameJa: '金閣寺',
+            nameLocal: '金閣寺',
             category: '신사/사찰',
             description: '금박으로 덮인 누각이 호수에 비치는 절경. 세계유산.',
             mustVisit: true,
@@ -1259,7 +1176,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '아라시야마 대나무숲',
-            nameJa: '嵐山竹林の小径',
+            nameLocal: '嵐山竹林の小径',
             category: '자연',
             description: '하늘 높이 솟은 대나무가 만드는 초록색 터널. 교토의 힐링 스팟.',
             mustVisit: true,
@@ -1273,7 +1190,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '도게츠교',
-            nameJa: '渡月橋',
+            nameLocal: '渡月橋',
             category: '관광지',
             description: '아라시야마의 상징적 다리. 산과 강이 어우러진 풍경.',
             mustVisit: true,
@@ -1288,14 +1205,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '후시미',
-        nameJa: '伏見',
+        nameLocal: '伏見',
         description: '천 개의 도리이로 유명한 후시미이나리 신사와 사케의 고장.',
         walkable: true,
         timeNeeded: '2~3시간',
         places: [
           {
             name: '후시미이나리 대사',
-            nameJa: '伏見稲荷大社',
+            nameLocal: '伏見稲荷大社',
             category: '신사/사찰',
             description: '천 본의 붉은 도리이가 산을 오르는 장관. 교토 No.1 명소.',
             mustVisit: true,
@@ -1311,19 +1228,21 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
     ],
     foods: [
-      { name: '유도후 (두부 요리)', nameJa: '湯豆腐', description: '교토 사찰 음식의 대표. 담백하고 깊은 맛의 두부 요리.', priceRange: '1,500~3,500엔', mustTry: true, bestSpots: ['난젠지 준세이', '오카쿠'], mealType: 'lunch' },
-      { name: '교 가이세키', nameJa: '京懐石', description: '교토식 코스 요리. 제철 식재료를 예술적으로 담아낸 일본 요리의 정수.', priceRange: '8,000~30,000엔', mustTry: true, bestSpots: ['기온 마루야마', '요시히로'], mealType: 'dinner' },
-      { name: '마차 디저트', nameJa: '抹茶スイーツ', description: '우지 말차를 사용한 파르페, 티라미수, 아이스크림 등.', priceRange: '500~1,500엔', mustTry: true, bestSpots: ['나카무라 토키치', '쓰지리'], mealType: 'snack' },
-      { name: '니신소바 (청어 소바)', nameJa: 'にしんそば', description: '달짝한 청어 조림을 올린 교토 전통 소바.', priceRange: '1,000~1,500엔', mustTry: false, bestSpots: ['마츠바'], mealType: 'lunch' },
-      { name: '야츠하시', nameJa: '八ツ橋', description: '교토 대표 기념품. 쌀가루·계피·팥소로 만든 삼각형 과자.', priceRange: '500~1,000엔', mustTry: false, bestSpots: ['기온 각 기념품점'], mealType: 'snack' },
+      { name: '유도후 (두부 요리)', nameLocal: '湯豆腐', description: '교토 사찰 음식의 대표. 담백하고 깊은 맛의 두부 요리.', priceRange: '1,500~3,500엔', mustTry: true, bestSpots: ['난젠지 준세이', '오카쿠'], mealType: 'lunch' },
+      { name: '교 가이세키', nameLocal: '京懐石', description: '교토식 코스 요리. 제철 식재료를 예술적으로 담아낸 일본 요리의 정수.', priceRange: '8,000~30,000엔', mustTry: true, bestSpots: ['기온 마루야마', '요시히로'], mealType: 'dinner' },
+      { name: '마차 디저트', nameLocal: '抹茶スイーツ', description: '우지 말차를 사용한 파르페, 티라미수, 아이스크림 등.', priceRange: '500~1,500엔', mustTry: true, bestSpots: ['나카무라 토키치', '쓰지리'], mealType: 'snack' },
+      { name: '니신소바 (청어 소바)', nameLocal: 'にしんそば', description: '달짝한 청어 조림을 올린 교토 전통 소바.', priceRange: '1,000~1,500엔', mustTry: false, bestSpots: ['마츠바'], mealType: 'lunch' },
+      { name: '야츠하시', nameLocal: '八ツ橋', description: '교토 대표 기념품. 쌀가루·계피·팥소로 만든 삼각형 과자.', priceRange: '500~1,000엔', mustTry: false, bestSpots: ['기온 각 기념품점'], mealType: 'snack' },
     ],
     events: [
-      { name: '기온 마츠리', nameJa: '祇園祭', period: '7월 (하이라이트 17·24일)', description: '일본 3대 축제. 거대한 야마보코(수레)가 시내를 행진.', highlight: '17일 야마보코 순행이 최대 볼거리' },
-      { name: '단풍 라이트업', nameJa: '紅葉ライトアップ', period: '11월 중순~12월 초', description: '에이칸도, 기요미즈데라 등 야간 단풍 조명.', highlight: '에이칸도의 단풍 반사 연못이 최고' },
-      { name: '하나토로', nameJa: '花灯路', period: '3월·12월', description: '아라시야마·히가시야마 골목에 등불을 켜는 환상적 이벤트.', highlight: '대나무숲 라이트업' },
+      { name: '기온 마츠리', nameLocal: '祇園祭', period: '7월 (하이라이트 17·24일)', description: '일본 3대 축제. 거대한 야마보코(수레)가 시내를 행진.', highlight: '17일 야마보코 순행이 최대 볼거리' },
+      { name: '단풍 라이트업', nameLocal: '紅葉ライトアップ', period: '11월 중순~12월 초', description: '에이칸도, 기요미즈데라 등 야간 단풍 조명.', highlight: '에이칸도의 단풍 반사 연못이 최고' },
+      { name: '하나토로', nameLocal: '花灯路', period: '3월·12월', description: '아라시야마·히가시야마 골목에 등불을 켜는 환상적 이벤트.', highlight: '대나무숲 라이트업' },
     ],
-    transportFromTokyo: { method: '신칸센 노조미', duration: '약 2시간 10분', cost: '14,170엔' },
-    transportFromOsaka: { method: 'JR/한큐/게이한', duration: '약 15~50분', cost: '410~920엔' },
+    transportLinks: [
+      { from: '도쿄', method: '신칸센 노조미', duration: '약 2시간 10분', cost: '14,170엔' },
+      { from: '오사카', method: 'JR/한큐/게이한', duration: '약 15~50분', cost: '410~920엔' },
+    ],
     neighborCities: [
       { cityId: 'osaka', cityName: '오사카', transport: 'JR/한큐', duration: '약 15~30분', dayTripViable: true },
       { cityId: 'nara', cityName: '나라', transport: '긴테쓰', duration: '약 45분', dayTripViable: true },
@@ -1345,8 +1264,8 @@ export const JAPAN_CITIES: CityProfile[] = [
   {
     id: 'fukuoka',
     name: '후쿠오카',
-    nameJa: '福岡',
-    prefecture: '후쿠오카현',
+    nameLocal: '福岡',
+    country: '일본',
     region: '규슈',
     description: '규슈의 관문. 돈코츠 라멘, 야타이, 모츠나베의 미식 도시.',
     character: '먹고 놀기 좋은 콤팩트한 미식 도시',
@@ -1356,14 +1275,14 @@ export const JAPAN_CITIES: CityProfile[] = [
     areas: [
       {
         name: '나카스·텐진',
-        nameJa: '中洲・天神',
+        nameLocal: '中洲・天神',
         description: '후쿠오카 최대 번화가. 야타이(포장마차) 거리와 쇼핑의 중심.',
         walkable: true,
         timeNeeded: '3~4시간',
         places: [
           {
             name: '나카스 야타이 거리',
-            nameJa: '中洲屋台街',
+            nameLocal: '中洲屋台街',
             category: '맛집',
             description: '강변에 늘어선 포장마차. 라멘, 오뎅, 교자 등을 현지인과 어깨 맞대고.',
             mustVisit: true,
@@ -1376,7 +1295,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '캐널시티 하카타',
-            nameJa: 'キャナルシティ博多',
+            nameLocal: 'キャナルシティ博多',
             category: '쇼핑',
             description: '운하가 흐르는 대형 복합시설. 라멘 스타디움(8층)이 유명.',
             mustVisit: true,
@@ -1388,7 +1307,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '텐진 지하상가',
-            nameJa: '天神地下街',
+            nameLocal: '天神地下街',
             category: '쇼핑',
             description: '유럽풍 인테리어의 일본 최대급 지하상가. 150개+ 매장.',
             mustVisit: false,
@@ -1402,14 +1321,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '하카타역·구시다 신사',
-        nameJa: '博多駅・櫛田神社',
+        nameLocal: '博多駅・櫛田神社',
         description: '후쿠오카의 현관. 역사적 신사와 현대적 역세권.',
         walkable: true,
         timeNeeded: '2~3시간',
         places: [
           {
             name: '구시다 신사',
-            nameJa: '櫛田神社',
+            nameLocal: '櫛田神社',
             category: '신사/사찰',
             description: '하카타의 수호신사. 하카타 기온 야마카사 축제의 중심.',
             mustVisit: true,
@@ -1423,7 +1342,7 @@ export const JAPAN_CITIES: CityProfile[] = [
           },
           {
             name: '하카타 마치야 민속관',
-            nameJa: '博多町家ふるさと館',
+            nameLocal: '博多町家ふるさと館',
             category: '관광지',
             description: '하카타 전통 문화와 공예를 체험할 수 있는 소규모 박물관.',
             mustVisit: false,
@@ -1438,14 +1357,14 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
       {
         name: '오호리 공원·후쿠오카성',
-        nameJa: '大濠公園・福岡城',
+        nameLocal: '大濠公園・福岡城',
         description: '시민의 휴식처. 호수 산책, 벚꽃 명소, 성터.',
         walkable: true,
         timeNeeded: '1.5~2시간',
         places: [
           {
             name: '오호리 공원',
-            nameJa: '大濠公園',
+            nameLocal: '大濠公園',
             category: '자연',
             description: '호수를 중심으로 한 아름다운 시민공원. 조깅, 보트, 산책.',
             mustVisit: false,
@@ -1460,18 +1379,20 @@ export const JAPAN_CITIES: CityProfile[] = [
       },
     ],
     foods: [
-      { name: '하카타 돈코츠 라멘', nameJa: '博多豚骨ラーメン', description: '유백색 돈코츠 스프에 가는 면. 카에다마(면 추가)는 필수.', priceRange: '700~1,000엔', mustTry: true, bestSpots: ['잇푸도', '이치란', '신신', '나가하마 야타이'], mealType: 'any' },
-      { name: '모츠나베', nameJa: 'もつ鍋', description: '소 곱창을 니라·양배추와 함께 끓인 후쿠오카 향토 냄비.', priceRange: '1,500~3,000엔', mustTry: true, bestSpots: ['야마모토야', '오오야마'], mealType: 'dinner' },
-      { name: '하카타 교자', nameJa: '博多餃子', description: '한 입 사이즈의 작은 만두. 바삭한 겉면과 육즙이 포인트.', priceRange: '300~600엔', mustTry: true, bestSpots: ['텐츠 교자', '야타이'], mealType: 'any' },
-      { name: '미즈타키', nameJa: '水炊き', description: '닭고기를 맑은 육수에 끓인 교토풍 나베. 후쿠오카의 또다른 명물.', priceRange: '2,000~4,000엔', mustTry: false, bestSpots: ['하카타 하나미도리'], mealType: 'dinner' },
-      { name: '멘타이코', nameJa: '明太子', description: '매콤한 명란젓. 밥 반찬, 파스타, 빵 등 다양하게 응용.', priceRange: '500~2,000엔', mustTry: true, bestSpots: ['후쿠야', '카네후쿠 멘타이코 파크'], mealType: 'any' },
+      { name: '하카타 돈코츠 라멘', nameLocal: '博多豚骨ラーメン', description: '유백색 돈코츠 스프에 가는 면. 카에다마(면 추가)는 필수.', priceRange: '700~1,000엔', mustTry: true, bestSpots: ['잇푸도', '이치란', '신신', '나가하마 야타이'], mealType: 'any' },
+      { name: '모츠나베', nameLocal: 'もつ鍋', description: '소 곱창을 니라·양배추와 함께 끓인 후쿠오카 향토 냄비.', priceRange: '1,500~3,000엔', mustTry: true, bestSpots: ['야마모토야', '오오야마'], mealType: 'dinner' },
+      { name: '하카타 교자', nameLocal: '博多餃子', description: '한 입 사이즈의 작은 만두. 바삭한 겉면과 육즙이 포인트.', priceRange: '300~600엔', mustTry: true, bestSpots: ['텐츠 교자', '야타이'], mealType: 'any' },
+      { name: '미즈타키', nameLocal: '水炊き', description: '닭고기를 맑은 육수에 끓인 교토풍 나베. 후쿠오카의 또다른 명물.', priceRange: '2,000~4,000엔', mustTry: false, bestSpots: ['하카타 하나미도리'], mealType: 'dinner' },
+      { name: '멘타이코', nameLocal: '明太子', description: '매콤한 명란젓. 밥 반찬, 파스타, 빵 등 다양하게 응용.', priceRange: '500~2,000엔', mustTry: true, bestSpots: ['후쿠야', '카네후쿠 멘타이코 파크'], mealType: 'any' },
     ],
     events: [
-      { name: '하카타 기온 야마카사', nameJa: '博多祇園山笠', period: '7월 1~15일', description: '700년 역사의 하카타 대표 축제. 1톤짜리 수레를 메고 달림.', highlight: '15일 새벽 오이야마(追い山)가 최대 클라이맥스' },
-      { name: '하카타 돈타쿠', nameJa: '博多どんたく', period: '5월 3~4일', description: '200만 명이 참가하는 시민 축제.', highlight: '시민 퍼레이드와 거리 공연' },
+      { name: '하카타 기온 야마카사', nameLocal: '博多祇園山笠', period: '7월 1~15일', description: '700년 역사의 하카타 대표 축제. 1톤짜리 수레를 메고 달림.', highlight: '15일 새벽 오이야마(追い山)가 최대 클라이맥스' },
+      { name: '하카타 돈타쿠', nameLocal: '博多どんたく', period: '5월 3~4일', description: '200만 명이 참가하는 시민 축제.', highlight: '시민 퍼레이드와 거리 공연' },
     ],
-    transportFromTokyo: { method: '비행기', duration: '약 1시간 50분', cost: '8,000~25,000엔', tips: '후쿠오카 공항에서 지하철로 하카타역 5분, 텐진 11분' },
-    transportFromOsaka: { method: '신칸센 미즈호', duration: '약 2시간 15분', cost: '15,600엔' },
+    transportLinks: [
+      { from: '도쿄', method: '비행기', duration: '약 1시간 50분', cost: '8,000~25,000엔', tips: '후쿠오카 공항에서 지하철로 하카타역 5분, 텐진 11분' },
+      { from: '오사카', method: '신칸센 미즈호', duration: '약 2시간 15분', cost: '15,600엔' },
+    ],
     neighborCities: [
       { cityId: 'dazaifu', cityName: '다자이후', transport: '니시테츠', duration: '약 30분', dayTripViable: true },
       { cityId: 'beppu', cityName: '벳푸', transport: 'JR 소닉', duration: '약 2시간', dayTripViable: true },
@@ -1487,105 +1408,3 @@ export const JAPAN_CITIES: CityProfile[] = [
     tags: ['라멘', '야타이', '미식', '공항접근성', '규슈', '모츠나베', '멘타이코'],
   },
 ];
-
-// ─── Helper Functions ──────────────────────────────────
-
-export function findCity(query: string): CityProfile | undefined {
-  const q = query.toLowerCase();
-  return JAPAN_CITIES.find(
-    (c) =>
-      c.name.includes(query) ||
-      c.nameJa.includes(query) ||
-      c.id.includes(q) ||
-      c.prefecture.includes(query) ||
-      c.tags.some((t) => t.includes(query))
-  );
-}
-
-export function findCitiesByTag(tag: string): CityProfile[] {
-  return JAPAN_CITIES.filter((c) => c.tags.some((t) => t.includes(tag)));
-}
-
-export function getCityContext(cityId: string): string {
-  const city = JAPAN_CITIES.find((c) => c.id === cityId);
-  if (!city) return '';
-
-  const lines: string[] = [
-    `\n## ${city.name} (${city.nameJa}) 정보`,
-    `📍 ${city.prefecture} | ${city.region}`,
-    `💬 ${city.character}`,
-    `📅 추천 체류: ${city.averageStay} | 💰 예산: ${city.budgetPerDay.mid} (중간)`,
-    '',
-    `### 에리어`,
-  ];
-
-  for (const area of city.areas) {
-    lines.push(`**${area.name}** (${area.nameJa}) - ${area.description} [소요: ${area.timeNeeded}]`);
-    for (const place of area.places) {
-      const must = place.mustVisit ? '⭐' : '';
-      lines.push(`  - ${must}${place.name} (${place.nameJa}): ${place.description} [${place.duration}${place.admission ? ', ' + place.admission : ''}]`);
-      if (place.tips) lines.push(`    💡 ${place.tips}`);
-    }
-  }
-
-  lines.push('', '### 맛집/음식');
-  for (const food of city.foods) {
-    const must = food.mustTry ? '⭐' : '';
-    lines.push(`  - ${must}${food.name} (${food.nameJa}): ${food.description} [${food.priceRange}]`);
-    lines.push(`    추천: ${food.bestSpots.join(', ')}`);
-  }
-
-  lines.push('', '### 교통');
-  lines.push(`  도쿄→: ${city.transportFromTokyo.method} ${city.transportFromTokyo.duration} (${city.transportFromTokyo.cost})`);
-  lines.push(`  오사카→: ${city.transportFromOsaka.method} ${city.transportFromOsaka.duration} (${city.transportFromOsaka.cost})`);
-
-  if (city.neighborCities.length > 0) {
-    lines.push('', '### 근처 도시');
-    for (const nc of city.neighborCities) {
-      lines.push(`  - ${nc.cityName}: ${nc.transport} ${nc.duration}${nc.dayTripViable ? ' (당일치기 가능)' : ''}`);
-    }
-  }
-
-  if (city.events.length > 0) {
-    lines.push('', '### 시즌 이벤트');
-    for (const ev of city.events) {
-      lines.push(`  - ${ev.name} (${ev.period}): ${ev.highlight}`);
-    }
-  }
-
-  lines.push('', '### 여행 팁');
-  for (const tip of city.travelTips) {
-    lines.push(`  - ${tip}`);
-  }
-
-  return lines.join('\n');
-}
-
-export function buildKnowledgeContext(userMessage: string): string {
-  // Check if user mentions any known city
-  const matchedCities: CityProfile[] = [];
-
-  for (const city of JAPAN_CITIES) {
-    const terms = [city.name, city.nameJa, city.id, city.prefecture];
-    if (terms.some((t) => userMessage.includes(t))) {
-      matchedCities.push(city);
-    }
-  }
-
-  // Also check for general Japan keywords
-  const japanKeywords = ['일본', 'japan', '소도시', '규슈', '간사이', '홋카이도', '호쿠리쿠'];
-  const isJapanRelated = japanKeywords.some((k) => userMessage.toLowerCase().includes(k));
-
-  if (matchedCities.length === 0 && isJapanRelated) {
-    // Provide overview of available cities
-    return `\n## 일본 소도시 추천 목록\n${JAPAN_CITIES.map(
-      (c) => `- **${c.name}** (${c.nameJa}): ${c.character} [추천 시즌: ${c.bestSeasons.map(s => ({ spring: '봄', summer: '여름', autumn: '가을', winter: '겨울' }[s])).join('·')}]`
-    ).join('\n')}`;
-  }
-
-  if (matchedCities.length > 0) {
-    return matchedCities.map((c) => getCityContext(c.id)).join('\n\n---\n\n');
-  }
-
-  return '';
-}
