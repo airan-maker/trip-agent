@@ -20,17 +20,86 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { fadeInUp, staggerContainer, staggerItem } from '@/lib/animations';
+import { HelpCircle } from 'lucide-react';
+
+const FAQ_ITEMS = [
+  {
+    question: 'TripTalk은 무료인가요?',
+    answer: '네, TripTalk은 완전 무료입니다. 로그인 없이 바로 AI와 대화하며 여행 일정을 만들 수 있어요.',
+  },
+  {
+    question: '어떤 여행지를 지원하나요?',
+    answer: '일본(도쿄, 오사카, 교토 등), 동남아(방콕, 발리, 다낭 등), 유럽(파리, 런던, 바르셀로나), 미국(뉴욕, LA, 하와이) 등 전 세계 인기 여행지를 지원합니다.',
+  },
+  {
+    question: '만든 일정을 공유할 수 있나요?',
+    answer: '네, 생성된 여행 일정은 고유 링크가 부여되어 가족, 친구에게 손쉽게 공유할 수 있습니다. 앱 설치 없이 브라우저에서 바로 확인 가능합니다.',
+  },
+  {
+    question: 'AI가 추천하는 정보는 정확한가요?',
+    answer: 'TripTalk은 구조화된 현지 데이터베이스를 기반으로 운영시간, 입장료, 교통편, 맛집 등 검증된 정보를 제공합니다. 다만 현지 사정에 따라 달라질 수 있으니 방문 전 최종 확인을 권장합니다.',
+  },
+];
+
+const WEBSITE_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'TripTalk',
+  url: 'https://www.triptalk.me',
+  description: 'AI와 대화하면서 여행을 기획하고, 공유 가능한 웹 일정 페이지를 자동 생성하세요.',
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: 'https://www.triptalk.me',
+    'query-input': 'required name=destination',
+  },
+};
+
+const ORGANIZATION_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'TripTalk',
+  url: 'https://www.triptalk.me',
+  logo: 'https://www.triptalk.me/icon.png',
+  description: 'AI 기반 여행 일정 플래너',
+};
+
+const FAQ_JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: FAQ_ITEMS.map((item) => ({
+    '@type': 'Question',
+    name: item.question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: item.answer,
+    },
+  })),
+};
 
 const DESTINATIONS = [
-  { name: '도쿄', nameJa: '東京', emoji: '🗼', desc: '전통과 첨단이 공존하는 대도시' },
-  { name: '오사카', nameJa: '大阪', emoji: '🐙', desc: '먹거리 천국, 쿠이다오레의 도시' },
-  { name: '교토', nameJa: '京都', emoji: '⛩️', desc: '천년 고도의 사찰과 마차' },
-  { name: '후쿠오카', nameJa: '福岡', emoji: '🍜', desc: '돈코츠 라멘과 야타이의 도시' },
-  { name: '삿포로', nameJa: '札幌', emoji: '❄️', desc: '라멘과 눈축제의 도시' },
-  { name: '가나자와', nameJa: '金沢', emoji: '🏯', desc: '전통과 현대의 우아한 조화' },
-  { name: '고베', nameJa: '神戸', emoji: '🥩', desc: '와규와 1000만 달러 야경' },
-  { name: '가고시마', nameJa: '鹿児島', emoji: '🌋', desc: '화산과 흑돼지의 남국' },
-  { name: '히로시마', nameJa: '広島', emoji: '☮️', desc: '평화와 미야지마의 감동' },
+  // 일본
+  { name: '도쿄', nameLocal: '東京', emoji: '🗼', desc: '전통과 첨단이 공존하는 대도시' },
+  { name: '오사카', nameLocal: '大阪', emoji: '🐙', desc: '먹거리 천국, 쿠이다오레의 도시' },
+  { name: '교토', nameLocal: '京都', emoji: '⛩️', desc: '천년 고도의 사찰과 마차' },
+  { name: '후쿠오카', nameLocal: '福岡', emoji: '🍜', desc: '돈코츠 라멘과 야타이의 도시' },
+  { name: '삿포로', nameLocal: '札幌', emoji: '❄️', desc: '라멘과 눈축제의 도시' },
+  { name: '가나자와', nameLocal: '金沢', emoji: '🏯', desc: '전통과 현대의 우아한 조화' },
+  { name: '고베', nameLocal: '神戸', emoji: '🥩', desc: '와규와 1000만 달러 야경' },
+  { name: '가고시마', nameLocal: '鹿児島', emoji: '🌋', desc: '화산과 흑돼지의 남국' },
+  { name: '히로시마', nameLocal: '広島', emoji: '☮️', desc: '평화와 미야지마의 감동' },
+  // 동남아
+  { name: '방콕', nameLocal: 'กรุงเทพ', emoji: '🛕', desc: '사원과 야시장의 매력적인 혼돈' },
+  { name: '발리', nameLocal: 'Bali', emoji: '🌴', desc: '자연과 영성의 열대 낙원' },
+  { name: '다낭', nameLocal: 'Đà Nẵng', emoji: '🏖️', desc: '해변과 골든브릿지의 도시' },
+  { name: '싱가포르', nameLocal: 'Singapore', emoji: '🦁', desc: '깨끗한 다문화 미식 천국' },
+  // 미주
+  { name: '뉴욕', nameLocal: 'New York', emoji: '🗽', desc: '잠들지 않는 세계의 수도' },
+  { name: '하와이', nameLocal: 'Hawaiʻi', emoji: '🌺', desc: '알로하 정신의 열대 파라다이스' },
+  { name: 'LA', nameLocal: 'Los Angeles', emoji: '🎬', desc: '할리우드와 해변의 도시' },
+  // 유럽
+  { name: '파리', nameLocal: 'Paris', emoji: '🗼', desc: '예술과 낭만의 빛의 도시' },
+  { name: '런던', nameLocal: 'London', emoji: '🎡', desc: '전통과 트렌드의 왕실 도시' },
+  { name: '바르셀로나', nameLocal: 'Barcelona', emoji: '🏗️', desc: '가우디의 지중해 도시' },
 ];
 
 export default function LandingPage() {
@@ -51,6 +120,18 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#fafafa]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSON_LD) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION_JSON_LD) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSON_LD) }}
+      />
       {/* Nav */}
       <nav className="sticky top-0 z-50 glass border-b border-gray-100/50">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -67,7 +148,7 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative overflow-hidden">
+      <section aria-label="히어로" className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-violet-50/80 via-transparent to-transparent" />
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-violet-200/30 rounded-full blur-3xl" />
 
@@ -127,7 +208,7 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="max-w-4xl mx-auto px-4 py-20">
+      <section aria-label="사용 방법" className="max-w-4xl mx-auto px-4 py-20">
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -189,7 +270,7 @@ export default function LandingPage() {
       </section>
 
       {/* Destination showcase */}
-      <section className="py-20 bg-white border-y border-gray-100">
+      <section aria-label="여행지" className="py-20 bg-white border-y border-gray-100">
         <div className="max-w-5xl mx-auto px-4">
           <motion.div
             initial="hidden"
@@ -200,10 +281,10 @@ export default function LandingPage() {
           >
             <motion.p variants={fadeInUp} className="text-sm font-semibold text-violet-600 mb-2">DESTINATIONS</motion.p>
             <motion.h2 variants={fadeInUp} className="text-3xl font-bold text-gray-900 tracking-tight">
-              일본 여행 전문
+              전 세계 인기 여행지
             </motion.h2>
             <motion.p variants={fadeInUp} className="text-gray-500 mt-3 max-w-md mx-auto">
-              대도시부터 매력적인 소도시까지, AI와 함께 나만의 일본 여행을 기획해보세요.
+              일본, 동남아, 미주, 유럽까지. AI와 함께 나만의 여행을 기획해보세요.
             </motion.p>
           </motion.div>
 
@@ -212,7 +293,7 @@ export default function LandingPage() {
             whileInView="visible"
             viewport={{ once: true, margin: "-50px" }}
             variants={staggerContainer}
-            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4"
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
           >
             {DESTINATIONS.map((dest) => (
               <motion.button
@@ -230,7 +311,7 @@ export default function LandingPage() {
                       <h3 className="font-bold text-gray-900 group-hover:text-violet-700 transition-colors">
                         {dest.name}
                       </h3>
-                      <p className="text-xs text-gray-400">{dest.nameJa}</p>
+                      <p className="text-xs text-gray-400">{dest.nameLocal}</p>
                     </div>
                   </div>
                   <p className="text-sm text-gray-500">{dest.desc}</p>
@@ -251,7 +332,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="max-w-4xl mx-auto px-4 py-20">
+      <section aria-label="주요 기능" className="max-w-4xl mx-auto px-4 py-20">
         <motion.div
           initial="hidden"
           whileInView="visible"
@@ -278,8 +359,50 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
+      {/* FAQ */}
+      <section aria-label="자주 묻는 질문" className="py-20 bg-white border-y border-gray-100">
+        <div className="max-w-4xl mx-auto px-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={staggerContainer}
+            className="text-center mb-14"
+          >
+            <motion.p variants={fadeInUp} className="text-sm font-semibold text-violet-600 mb-2">FAQ</motion.p>
+            <motion.h2 variants={fadeInUp} className="text-3xl font-bold text-gray-900 tracking-tight">
+              자주 묻는 질문
+            </motion.h2>
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            variants={staggerContainer}
+            className="grid gap-5 max-w-3xl mx-auto"
+          >
+            {FAQ_ITEMS.map((item, i) => (
+              <motion.article key={i} variants={staggerItem}>
+                <Card className="p-7">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center flex-shrink-0">
+                      <HelpCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 mb-2">{item.question}</h3>
+                      <p className="text-sm text-gray-500 leading-relaxed">{item.answer}</p>
+                    </div>
+                  </div>
+                </Card>
+              </motion.article>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
       {/* CTA */}
-      <section className="py-20">
+      <section aria-label="시작하기" className="py-20">
         <div className="max-w-4xl mx-auto px-4">
           <motion.div
             initial="hidden"

@@ -14,14 +14,37 @@ const notoSansKR = Noto_Sans_KR({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.triptalk.me"),
   title: "TripTalk - 대화하면 완성되는 여행 일정",
   description:
     "AI와 대화하면서 여행을 기획하고, 공유 가능한 웹 일정 페이지를 자동 생성하세요.",
+  keywords: [
+    "AI 여행 플래너",
+    "여행 일정",
+    "일본 여행",
+    "동남아 여행",
+    "유럽 여행",
+    "미국 여행",
+    "여행 계획",
+    "AI travel planner",
+    "TripTalk",
+  ],
   openGraph: {
     title: "TripTalk - 대화하면 완성되는 여행 일정",
     description:
       "AI와 대화하면서 여행을 기획하고, 공유 가능한 웹 일정 페이지를 자동 생성하세요.",
     type: "website",
+    locale: "ko_KR",
+    siteName: "TripTalk",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TripTalk - 대화하면 완성되는 여행 일정",
+    description:
+      "AI와 대화하면서 여행을 기획하고, 공유 가능한 웹 일정 페이지를 자동 생성하세요.",
+  },
+  alternates: {
+    canonical: "/",
   },
   robots: {
     index: true,

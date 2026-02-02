@@ -361,6 +361,15 @@ export async function reindexDay(tripId: string, dayIndex: number): Promise<void
   await c.batch(statements, 'write');
 }
 
+// List complete trips for sitemap
+export async function getCompleteTrips(): Promise<{ id: string; updatedAt: string }[]> {
+  const c = await ensureInitialized();
+  const result = await c.execute(
+    "SELECT id, updatedAt FROM trips WHERE status = 'complete' ORDER BY updatedAt DESC"
+  );
+  return result.rows as unknown as { id: string; updatedAt: string }[];
+}
+
 // Health check
 export async function healthCheck(): Promise<boolean> {
   try {
