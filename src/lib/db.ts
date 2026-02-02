@@ -285,6 +285,82 @@ export async function updatePlaceImageUrl(placeId: string, imageUrl: string): Pr
   });
 }
 
+// Single place operations for incremental modification
+
+export async function addPlace(place: Place): Promise<void> {
+  const c = await ensureInitialized();
+  await c.execute({
+    sql: `INSERT INTO places (id, tripId, dayIndex, timeSlot, orderIndex, name, nameLocal, category, description, address, latitude, longitude, rating, openingHours, duration, cost, imageUrl, memo)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    args: [
+      place.id, place.tripId, place.dayIndex, place.timeSlot, place.orderIndex,
+      place.name, place.nameLocal, place.category, place.description, place.address,
+      place.latitude, place.longitude,
+      place.rating != null ? Math.min(5, Math.max(0, place.rating)) : null,
+      place.openingHours, place.duration, place.cost, place.imageUrl, place.memo,
+    ] as Array<string | number | null>,
+  });
+}
+
+export async function deletePlace(placeId: string, tripId: string): Promise<void> {
+  const c = await ensureInitialized();
+  await c.execute({
+    sql: 'DELETE FROM places WHERE id = ? AND tripId = ?',
+    args: [placeId, tripId],
+  });
+}
+
+export async function updatePlace(placeId: string, updates: Partial<Place>): Promise<void> {
+  const allowedColumns = new Set([
+    'dayIndex', 'timeSlot', 'orderIndex', 'name', 'nameLocal',
+    'category', 'description', 'address', 'latitude', 'longitude',
+    'rating', 'openingHours', 'duration', 'cost',
+  ]);
+
+  const fields: string[] = [];
+  const values: unknown[] = [];
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (!allowedColumns.has(key)) continue;
+    fields.push(`${key} = ?`);
+    values.push(value ?? null);
+  }
+
+  if (fields.length === 0) return;
+
+  values.push(placeId);
+  const c = await ensureInitialized();
+  await c.execute({
+    sql: `UPDATE places SET ${fields.join(', ')} WHERE id = ?`,
+    args: values as Array<string | number | null>,
+  });
+}
+
+export async function deletePlacesByDay(tripId: string, dayIndex: number): Promise<void> {
+  const c = await ensureInitialized();
+  await c.execute({
+    sql: 'DELETE FROM places WHERE tripId = ? AND dayIndex = ?',
+    args: [tripId, dayIndex],
+  });
+}
+
+export async function reindexDay(tripId: string, dayIndex: number): Promise<void> {
+  const c = await ensureInitialized();
+  const result = await c.execute({
+    sql: 'SELECT id FROM places WHERE tripId = ? AND dayIndex = ? ORDER BY orderIndex',
+    args: [tripId, dayIndex],
+  });
+
+  if (result.rows.length === 0) return;
+
+  const statements = result.rows.map((row, i) => ({
+    sql: 'UPDATE places SET orderIndex = ? WHERE id = ?',
+    args: [i, (row as unknown as { id: string }).id] as Array<string | number | null>,
+  }));
+
+  await c.batch(statements, 'write');
+}
+
 // Health check
 export async function healthCheck(): Promise<boolean> {
   try {

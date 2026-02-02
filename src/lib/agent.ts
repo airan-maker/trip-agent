@@ -94,11 +94,28 @@ Include as many of these as relevant:
 Do NOT write generic one-liners. Write as if explaining to a friend who has never been there.
 
 ## When modifying the itinerary
-If the user wants changes after seeing the itinerary:
-- "너무 빡세다" → reduce places, add rest time
-- "카페 추가해줘" → add a cafe to appropriate slot
-- "2일차 바꿔줘" → regenerate that day
-Respond with the FULL updated itinerary JSON (not just the changed parts).
+이미 일정이 있을 때 사용자가 수정을 요청하면, create_itinerary 대신 modify_itinerary 액션을 사용하세요.
+현재 일정의 장소 id를 참조하여 변경 부분만 출력하세요.
+
+\`\`\`json
+{
+  "action": "modify_itinerary",
+  "operations": [
+    { "type": "add_place", "dayIndex": 2, "afterPlaceId": "abc123", "place": { ...place fields... } },
+    { "type": "remove_place", "placeId": "xyz789" },
+    { "type": "update_place", "placeId": "abc123", "updates": { "name": "새 이름", "description": "새 설명" } },
+    { "type": "replace_day", "dayIndex": 3, "title": "Day 3 - 새 제목", "places": [ ...full places array... ] }
+  ]
+}
+\`\`\`
+
+규칙:
+- 장소 추가: add_place (afterPlaceId가 null이면 해당 일차 맨 앞에 추가)
+- 장소 삭제: remove_place (placeId로 지정)
+- 장소 수정: update_place (변경할 필드만 포함)
+- 일차 전체 교체: replace_day (해당 일차를 통째로 교체, "2일차 다시 짜줘" 등)
+- 수정하지 않는 장소는 건드리지 마세요
+- 일정이 없을 때만 create_itinerary를 사용하세요
 
 ## Important
 - If the user hasn't provided enough info, keep conversing. Don't generate an itinerary prematurely.
@@ -118,15 +135,38 @@ When you have structured knowledge about a destination, USE IT to give precise r
  * Build system prompt with optional knowledge context injected.
  * Scans all recent messages + the current user message for city mentions.
  */
-function buildSystemPrompt(userMessage: string, previousMessages: { role: string; content: string }[]): string {
+function buildSystemPrompt(
+  userMessage: string,
+  previousMessages: { role: string; content: string }[],
+  existingPlaces?: Place[]
+): string {
   const basePrompt = buildBasePrompt();
   // Check user message and recent messages for city mentions
   const allText = [userMessage, ...previousMessages.slice(-6).map(m => m.content)].join(' ');
   const knowledge = buildKnowledgeContext(allText);
 
-  if (!knowledge) return basePrompt;
+  let prompt = basePrompt;
 
-  return `${basePrompt}\n\n---\n# 목적지 참고 정보 (Knowledge Base)\n아래 정보를 참고하여 구체적이고 정확한 추천을 해주세요.\n${knowledge}`;
+  if (knowledge) {
+    prompt += `\n\n---\n# 목적지 참고 정보 (Knowledge Base)\n아래 정보를 참고하여 구체적이고 정확한 추천을 해주세요.\n${knowledge}`;
+  }
+
+  // Inject current itinerary for modification context
+  if (existingPlaces && existingPlaces.length > 0) {
+    const dayMap = new Map<number, { id: string; dayIndex: number; timeSlot: string; orderIndex: number; name: string; category: string }[]>();
+    for (const p of existingPlaces) {
+      const arr = dayMap.get(p.dayIndex) || [];
+      arr.push({ id: p.id, dayIndex: p.dayIndex, timeSlot: p.timeSlot, orderIndex: p.orderIndex, name: p.name, category: p.category });
+      dayMap.set(p.dayIndex, arr);
+    }
+    const days = Array.from(dayMap.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([dayIndex, places]) => ({ dayIndex, places }));
+
+    prompt += `\n\n---\n## 현재 일정 (Current Itinerary)\n아래는 사용자의 현재 일정입니다. 수정 요청 시 이 일정의 id를 참조하세요.\n\`\`\`json\n${JSON.stringify({ days }, null, 2)}\n\`\`\``;
+  }
+
+  return prompt;
 }
 
 // Zod schema for validating LLM itinerary output
@@ -168,9 +208,42 @@ const itineraryPayloadSchema = z.object({
 
 type ItineraryPayload = z.infer<typeof itineraryPayloadSchema>;
 
+const modifyOperationSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('add_place'),
+    dayIndex: z.number().int().positive(),
+    afterPlaceId: z.string().nullable().optional(),
+    place: placePayloadSchema,
+  }),
+  z.object({
+    type: z.literal('remove_place'),
+    placeId: z.string(),
+  }),
+  z.object({
+    type: z.literal('update_place'),
+    placeId: z.string(),
+    updates: placePayloadSchema.partial(),
+  }),
+  z.object({
+    type: z.literal('replace_day'),
+    dayIndex: z.number().int().positive(),
+    title: z.string().max(200).optional(),
+    places: z.array(placePayloadSchema),
+  }),
+]);
+
+const modifyItinerarySchema = z.object({
+  action: z.literal('modify_itinerary'),
+  operations: z.array(modifyOperationSchema).min(1),
+});
+
+type ModifyItineraryPayload = z.infer<typeof modifyItinerarySchema>;
+type ActionPayload = ItineraryPayload | ModifyItineraryPayload;
+
 export interface AgentResponse {
   message: string;
   itineraryData: ItineraryPayload | null;
+  modifyData: ModifyItineraryPayload | null;
 }
 
 // Limit conversation context sent to LLM to avoid token overflow
@@ -208,8 +281,11 @@ export async function processChat(
     createdAt: new Date().toISOString(),
   });
 
-  // Build system prompt with knowledge context
-  const systemPrompt = buildSystemPrompt(userMessage, apiMessages);
+  // Fetch existing places for modification context
+  const existingPlaces = await db.getPlaces(tripId);
+
+  // Build system prompt with knowledge context and existing itinerary
+  const systemPrompt = buildSystemPrompt(userMessage, apiMessages, existingPlaces);
 
   // Call LLM
   const response = await callLLM(apiMessages, apiKey, env, systemPrompt);
@@ -226,6 +302,8 @@ export async function processChat(
   // If itinerary data was generated, save it
   if (response.itineraryData) {
     await saveItinerary(tripId, response.itineraryData);
+  } else if (response.modifyData) {
+    await applyModifications(tripId, response.modifyData);
   }
 
   return response;
@@ -266,8 +344,11 @@ export function createStreamingResponse(
           createdAt: new Date().toISOString(),
         });
 
-        // Build system prompt with knowledge context
-        const systemPrompt = buildSystemPrompt(userMessage, apiMessages);
+        // Fetch existing places for modification context
+        const existingPlaces = await db.getPlaces(tripId);
+
+        // Build system prompt with knowledge context and existing itinerary
+        const systemPrompt = buildSystemPrompt(userMessage, apiMessages, existingPlaces);
 
         // Stream from LLM
         let fullText = '';
@@ -278,11 +359,11 @@ export function createStreamingResponse(
           fullText = await streamAnthropic(apiMessages, apiKey, env, controller, encoder, systemPrompt);
         }
 
-        // Parse for itinerary
-        const itineraryData = extractItineraryJson(fullText);
+        // Parse for itinerary action
+        const actionData = extractActionJson(fullText);
 
         // Save assistant message
-        const displayMessage = itineraryData
+        const displayMessage = actionData
           ? fullText.replace(/```json[\s\S]*?```/g, '').trim() || '일정을 만들었어요! 아래에서 확인해보세요 ✈️'
           : fullText;
 
@@ -294,8 +375,12 @@ export function createStreamingResponse(
           createdAt: new Date().toISOString(),
         });
 
-        if (itineraryData) {
-          await saveItinerary(tripId, itineraryData);
+        if (actionData) {
+          if (actionData.action === 'create_itinerary') {
+            await saveItinerary(tripId, actionData);
+          } else {
+            await applyModifications(tripId, actionData);
+          }
           // Send itinerary ready signal
           const event = `data: ${JSON.stringify({ type: 'itinerary_ready' })}\n\n`;
           controller.enqueue(encoder.encode(event));
@@ -468,17 +553,25 @@ async function callLLM(
     responseText = await callAnthropic(messages, apiKey, env, systemPrompt);
   }
 
-  const itineraryData = extractItineraryJson(responseText);
+  const actionData = extractActionJson(responseText);
 
   let displayMessage = responseText;
-  if (itineraryData) {
+  let itineraryData: ItineraryPayload | null = null;
+  let modifyData: ModifyItineraryPayload | null = null;
+
+  if (actionData) {
     displayMessage = responseText.replace(/```json[\s\S]*?```/g, '').trim();
     if (!displayMessage) {
       displayMessage = '일정을 만들었어요! 아래에서 확인해보세요 ✈️';
     }
+    if (actionData.action === 'create_itinerary') {
+      itineraryData = actionData;
+    } else {
+      modifyData = actionData;
+    }
   }
 
-  return { message: displayMessage, itineraryData };
+  return { message: displayMessage, itineraryData, modifyData };
 }
 
 async function callAnthropic(
@@ -550,12 +643,22 @@ async function callOpenAI(
   return text;
 }
 
-function extractItineraryJson(text: string): ItineraryPayload | null {
+function extractActionJson(text: string): ActionPayload | null {
   const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
   if (!jsonMatch) return null;
 
   try {
     const raw = JSON.parse(jsonMatch[1]);
+
+    if (raw?.action === 'modify_itinerary') {
+      const parsed = modifyItinerarySchema.safeParse(raw);
+      if (!parsed.success) {
+        console.warn('Modify itinerary validation failed:', parsed.error.flatten());
+        return null;
+      }
+      return parsed.data;
+    }
+
     const parsed = itineraryPayloadSchema.safeParse(raw);
     if (!parsed.success) {
       console.warn('Itinerary validation failed:', parsed.error.flatten());
@@ -611,4 +714,110 @@ async function saveItinerary(tripId: string, data: ItineraryPayload): Promise<vo
   }
 
   await db.setPlaces(tripId, places);
+}
+
+async function applyModifications(tripId: string, data: ModifyItineraryPayload): Promise<void> {
+  const validTimeSlots = new Set(['morning', 'lunch', 'afternoon', 'evening']);
+
+  for (const op of data.operations) {
+    switch (op.type) {
+      case 'add_place': {
+        const existingPlaces = await db.getPlaces(tripId);
+        const dayPlaces = existingPlaces
+          .filter(p => p.dayIndex === op.dayIndex)
+          .sort((a, b) => a.orderIndex - b.orderIndex);
+
+        let insertIndex = 0;
+        if (op.afterPlaceId) {
+          const afterIdx = dayPlaces.findIndex(p => p.id === op.afterPlaceId);
+          insertIndex = afterIdx >= 0 ? afterIdx + 1 : dayPlaces.length;
+        }
+
+        // Shift orderIndex for places after the insertion point
+        for (let i = insertIndex; i < dayPlaces.length; i++) {
+          await db.updatePlace(dayPlaces[i].id, { orderIndex: dayPlaces[i].orderIndex + 1 });
+        }
+
+        const p = op.place;
+        await db.addPlace({
+          id: nanoid(),
+          tripId,
+          dayIndex: op.dayIndex,
+          timeSlot: validTimeSlots.has(p.timeSlot) ? p.timeSlot as Place['timeSlot'] : 'morning',
+          orderIndex: insertIndex,
+          name: p.name.slice(0, 200),
+          nameLocal: p.nameLocal?.slice(0, 200) || null,
+          category: p.category.slice(0, 50),
+          description: p.description.slice(0, 1000),
+          address: p.address?.slice(0, 500) || null,
+          latitude: p.latitude ?? null,
+          longitude: p.longitude ?? null,
+          rating: p.rating != null ? Math.min(5, Math.max(0, p.rating)) : null,
+          openingHours: p.openingHours?.slice(0, 100) || null,
+          duration: p.duration?.slice(0, 100) || null,
+          cost: p.cost?.slice(0, 100) || null,
+          imageUrl: null,
+          memo: null,
+        });
+        break;
+      }
+
+      case 'remove_place': {
+        const allPlaces = await db.getPlaces(tripId);
+        const target = allPlaces.find(p => p.id === op.placeId);
+        if (target) {
+          await db.deletePlace(op.placeId, tripId);
+          await db.reindexDay(tripId, target.dayIndex);
+        }
+        break;
+      }
+
+      case 'update_place': {
+        const updates: Partial<Place> = {};
+        const u = op.updates;
+        if (u.timeSlot !== undefined) updates.timeSlot = validTimeSlots.has(u.timeSlot) ? u.timeSlot as Place['timeSlot'] : undefined;
+        if (u.name !== undefined) updates.name = u.name.slice(0, 200);
+        if (u.nameLocal !== undefined) updates.nameLocal = u.nameLocal?.slice(0, 200) || null;
+        if (u.category !== undefined) updates.category = u.category.slice(0, 50);
+        if (u.description !== undefined) updates.description = u.description.slice(0, 1000);
+        if (u.address !== undefined) updates.address = u.address?.slice(0, 500) || null;
+        if (u.latitude !== undefined) updates.latitude = u.latitude ?? null;
+        if (u.longitude !== undefined) updates.longitude = u.longitude ?? null;
+        if (u.rating !== undefined) updates.rating = u.rating != null ? Math.min(5, Math.max(0, u.rating)) : null;
+        if (u.openingHours !== undefined) updates.openingHours = u.openingHours?.slice(0, 100) || null;
+        if (u.duration !== undefined) updates.duration = u.duration?.slice(0, 100) || null;
+        if (u.cost !== undefined) updates.cost = u.cost?.slice(0, 100) || null;
+        await db.updatePlace(op.placeId, updates);
+        break;
+      }
+
+      case 'replace_day': {
+        await db.deletePlacesByDay(tripId, op.dayIndex);
+        const places: Place[] = op.places.map((p, i) => ({
+          id: nanoid(),
+          tripId,
+          dayIndex: op.dayIndex,
+          timeSlot: validTimeSlots.has(p.timeSlot) ? p.timeSlot as Place['timeSlot'] : 'morning',
+          orderIndex: i,
+          name: p.name.slice(0, 200),
+          nameLocal: p.nameLocal?.slice(0, 200) || null,
+          category: p.category.slice(0, 50),
+          description: p.description.slice(0, 1000),
+          address: p.address?.slice(0, 500) || null,
+          latitude: p.latitude ?? null,
+          longitude: p.longitude ?? null,
+          rating: p.rating != null ? Math.min(5, Math.max(0, p.rating)) : null,
+          openingHours: p.openingHours?.slice(0, 100) || null,
+          duration: p.duration?.slice(0, 100) || null,
+          cost: p.cost?.slice(0, 100) || null,
+          imageUrl: null,
+          memo: null,
+        }));
+        for (const place of places) {
+          await db.addPlace(place);
+        }
+        break;
+      }
+    }
+  }
 }
