@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans_KR } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import ErrorBoundary from "@/components/shared/ErrorBoundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -42,6 +43,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className={notoSansKR.variable}>
+      <head>
+        <Script
+          src="https://tpembars.com/NDk0NjIz.js?t=494623"
+          strategy="afterInteractive"
+        />
+      </head>
       <body className={`${notoSansKR.className} antialiased`}>
         <TooltipProvider>
           <ErrorBoundary>{children}</ErrorBoundary>
